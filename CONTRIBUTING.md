@@ -1,28 +1,75 @@
 # Indíce
 - [Padrões de Branch](#padrôes-de-branch)
 - [Mensagens de commit](#mensagens-de-commit)
+- [Versionamento Semântico](#versionamento-semântico)
+- [Padrão de nomeação](#padrão-de-nomeação)
 - [Workflow](#workflow)
 
 --- 
 
 ## Padrões de branch
 - O padrão de branch a ser seguido é lowercase_snake_case.
-- Para nomea-las usar o mesmo padrão de commit “tipo: nome_da_branch”. Exemplo “feat/login-system”
 - A branch main é protegida, então somente pull requests para main poderão atualizá-la.
-- Teremos três padrões de branches (baseado na estratégia de branches GitHub Flow):
-    - Main - origem, código atual
-    - Release - branch de integração, onde todas as funcionalidades estão desenvolvidas e finalizadas
-    - Features - Para desenvolver as tarefas apenas e após o código ser promovido para Develop essa branch é excluida
+
+- Teremos dois padrões de branches (baseado na estratégia de branches Git Flow):
+    - Branches principais:
+        - Main: histórico oficial, deve estar sempre estável
+        - Develop: branch principal de integração com todas as features concluídas
+
+    - Branches de apoio:
+        - Feature: serve para desenvolver uma nova funcionalidade
+        - Release: serve para preparar e estabilizar um novo release
+        - Hotfix: serve para corrigir bugs críticos
+
 
 ---
 
 ## Mensagens de commit
-Os commits devem seguir o padrão "tipo(origem): mensagem do commit"
+Formato: <tipo>: <descrição>
 
-- Tipos sugeridos:
-    - feat: Implementação de código
-    - fix: Correção de bug ou alteração que modifica algo que já foi criado
-    - doc: Documentação
+- Tipos utilizados:
+    - feat: para novas funcionalidade
+    - fix: para correções de bugs
+    - doc: para mudanças na documentação
+    - style: para mudanças na formatação
+    - refactor: para refatorar o código (não alterando o comportamento externo)
+    - test: para adição ou correção de testes
+    - chore: para mudanças no processo de build
+
+Breaking changes: para commits que introduzem alguma mudança incompatível. Nesses casos colocar um "!" após o tipo. Exemplo: "feat!: corrigir erro de validação"
+
+---
+
+## Versionamento Semântico
+Formato: <tipo>: <descrição>
+
+- Tipos utilizados:
+    - feat: para novas funcionalidade
+    - fix: para correções de bugs
+    - doc: para mudanças na documentação
+    - style: para mudanças na formatação
+    - refactor: para refatorar o código (não alterando o comportamento externo)
+    - test: para adição ou correção de testes
+    - chore: para mudanças no processo de build
+
+Breaking changes: para commits que introduzem alguma mudança incompatível. Nesses casos colocar um "!" após o tipo. Exemplo: "feat!: corrigir erro de validação"
+
+---
+
+## Padrão de nomeação
+
+Para padronizar o projeto favor utilizarem somente snake_case e CamelCase tanto no frontend quanto no backend
+
+- Sugiro utilizarem lowercase_snake_case para:
+
+    - Estrutura do código
+    - Funções
+    - Variáveis
+    - Nomes de pastas e de arquivos
+
+- Usem CamelCase apenas em nomes de classes. 
+
+Para a linguagem do projeto sugiro utilizarem o inglês
 
 ---
 
