@@ -1,6 +1,6 @@
 # Descrição da Pull Request
 
-<!--Explique resumidamente o que foi criado, alterado ou corrigido neste PR.-->
+Explique resumidamente o que foi criado, alterado ou corrigido neste PR
 
 # Tipo de mudança
 
