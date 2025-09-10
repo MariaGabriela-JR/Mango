@@ -9,11 +9,14 @@ services:
       - APP_HOST=${APP_HOST}
       - APP_PORT=${APP_PORT}
       - PYTHONPATH=/code
+      - EDF_HOST_PATH=${EDF_HOST_PATH}
+      - EDF_CONTAINER_PATH=${EDF_CONTAINER_PATH}
     depends_on:
       db_fastapi:
         condition: service_healthy
     volumes:
       - ./fast_api:/code
+      - ${EDF_HOST_PATH}:${EDF_CONTAINER_PATH}:ro  # montagem só leitura
     working_dir: /code
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host ${APP_HOST} --port ${APP_PORT} --reload"
 

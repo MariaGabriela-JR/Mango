@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app.models import PatientMetadata as PatientMetadataModel  # Alias definido aqui
-from app.schemas import PatientMetadataCreate, PatientMetadataUpdate, PatientMetadata as PatientMetadataSchema
+from app.core.database import get_db
+from app.core.models import PatientMetadata as PatientMetadataModel  # Alias definido aqui
+from app.core.schemas import PatientMetadataCreate, PatientMetadataUpdate, PatientMetadata as PatientMetadataSchema
 import uuid
 
 router = APIRouter()

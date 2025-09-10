@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from app.core.security import create_access_token, verify_password, get_password_hash, ACCESS_TOKEN_EXPIRE_MINUTES
-from app.api.deps import get_current_user
+from app.core.deps import get_current_user
 
 router = APIRouter()
 

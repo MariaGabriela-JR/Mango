@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app.models import Trial as TrialModel, EDFFile as EDFFileModel 
-from app.schemas import TrialCreate, TrialUpdate, Trial as TrialSchema
+from app.core.database import get_db
+from app.core.models import Trial as TrialModel, EDFFile as EDFFileModel 
+from app.core.schemas import TrialCreate, TrialUpdate, Trial as TrialSchema
 import uuid
 
 router = APIRouter()

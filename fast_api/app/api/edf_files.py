@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app.models import EDFFile as EDFFileModel  
-from app.schemas import EDFFileCreate, EDFFileUpdate, EDFFile as EDFFileSchema
+from app.core.database import get_db
+from app.core.models import EDFFile as EDFFileModel  
+from app.core.schemas import EDFFileCreate, EDFFileUpdate, EDFFile as EDFFileSchema
 import uuid
 
 router = APIRouter()
