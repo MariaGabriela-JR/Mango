@@ -5,29 +5,19 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 from dotenv import load_dotenv
+from app.core.models import Base  
 
-# Carrega variáveis do .env
 load_dotenv()
-
-# Importa seu Base do SQLAlchemy
-from app.models import Base  # ajuste se necessário
-
-# Este é o target metadata para autogenerate
 target_metadata = Base.metadata
-
-# Configuração do Alembic
 config = context.config
-
 # Sobrescreve a URL do SQLAlchemy com a do .env
 config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
 
-# Configuração de logging mais robusta
 if config.config_file_name is not None and os.path.exists(config.config_file_name):
     try:
         fileConfig(config.config_file_name, disable_existing_loggers=False)
     except Exception as e:
         print(f"Warning: Could not configure logging: {e}")
-        # Configuração de fallback
         logging.basicConfig(level=logging.INFO)
 else:
     logging.basicConfig(level=logging.INFO)
