@@ -18,9 +18,9 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('patients/', include('patients.urls')),
-    path('auth/', include('authentication.urls')),
-    path('scientists/', include('scientists.urls')),
-    path('eeg/', include('eeg_sessions.urls')),
+    path('restapi/admin/', admin.site.urls),
+    path('restapi/patients/', include('patients.urls')),
+    path('restapi/auth/', include('authentication.urls')),
+    path('restapi/scientists/', include('scientists.urls')),
+    path('restapi/eeg/', include('eeg_sessions.urls')),
 ]

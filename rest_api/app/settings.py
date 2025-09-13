@@ -29,9 +29,9 @@ SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-default-key-fo
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 if DEBUG:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'restapi']
 else:
-    ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0').split(',')
+    ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0,restapi').split(',')
 
 
 # Application definition
