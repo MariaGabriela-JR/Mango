@@ -16,6 +16,7 @@ app = FastAPI(
     description="API para gerenciamento de arquivos EDF, filtros e dados de pacientes",
     version="1.3.0",
     lifespan=lifespan,
+    root_path="/fastapi"
 )
 
 app.add_middleware(

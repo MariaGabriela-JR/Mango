@@ -7,10 +7,15 @@ import mne
 router = APIRouter()
 
 EDF_CONTAINER_PATH = Path(os.getenv("EDF_CONTAINER_PATH", "/data_mango"))
-OUTPUT_CONTAINER_PATH = Path(os.getenv("OUTPUT_CONTAINER_PATH", "/code/output"))
+
+output_env = os.getenv("OUTPUT_CONTAINER_PATH")
+if output_env:
+    OUTPUT_CONTAINER_PATH = Path(output_env)
+else:
+    OUTPUT_CONTAINER_PATH = None  # ou Path("/tmp/output") para fallback temporário
+
 
 @router.get("/discover")
-
 def discover_files():
     if not EDF_CONTAINER_PATH.exists():
         raise HTTPException(status_code=500, detail=f"Pasta base não encontrada: {EDF_CONTAINER_PATH}")

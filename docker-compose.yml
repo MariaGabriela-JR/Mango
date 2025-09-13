@@ -11,15 +11,15 @@ services:
       - PYTHONPATH=/code
       - EDF_HOST_PATH=${EDF_HOST_PATH}
       - EDF_CONTAINER_PATH=${EDF_CONTAINER_PATH}
-      - OUTPUT_HOST_PATH=${OUTPUT_HOST_PATH:-./output}
-      - OUTPUT_CONTAINER_PATH=${OUTPUT_CONTAINER_PATH:-/code/output}
+      - OUTPUT_HOST_PATH=${OUTPUT_HOST_PATH}
+      - OUTPUT_CONTAINER_PATH=${OUTPUT_CONTAINER_PATH}
     depends_on:
       db_fastapi:
         condition: service_healthy
     volumes:
       - ./fast_api:/code
       - ${EDF_HOST_PATH}:${EDF_CONTAINER_PATH}:ro
-      - ${OUTPUT_HOST_PATH}:${OUTPUT_CONTAINER_PATH}
+      - ${OUTPUT_HOST_PATH:-}:${OUTPUT_CONTAINER_PATH:-}
     working_dir: /code
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host ${APP_HOST} --port ${APP_PORT} --reload"
 
@@ -98,12 +98,14 @@ services:
     image: nginx:latest
     container_name: nginx_proxy
     ports:
-      - "8003:443"
+      - "443:443"
+      - "80:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - restapi
+      - fastapi
 
 volumes:
   postgres_fastapi_data:
