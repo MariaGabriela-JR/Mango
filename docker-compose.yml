@@ -11,17 +11,54 @@ services:
       - PYTHONPATH=/code
       - EDF_HOST_PATH=${EDF_HOST_PATH}
       - EDF_CONTAINER_PATH=${EDF_CONTAINER_PATH}
-      - OUTPUT_HOST_PATH=${OUTPUT_HOST_PATH:-./output}  # Nova variável para output
-      - OUTPUT_CONTAINER_PATH=${OUTPUT_CONTAINER_PATH:-/code/output}  # Nova variável para output
+      - OUTPUT_HOST_PATH=${OUTPUT_HOST_PATH:-./output}
+      - OUTPUT_CONTAINER_PATH=${OUTPUT_CONTAINER_PATH:-/code/output}
     depends_on:
       db_fastapi:
         condition: service_healthy
     volumes:
       - ./fast_api:/code
       - ${EDF_HOST_PATH}:${EDF_CONTAINER_PATH}:ro
-      - ${OUTPUT_HOST_PATH}:${OUTPUT_CONTAINER_PATH}  # Novo volume para output
+      - ${OUTPUT_HOST_PATH}:${OUTPUT_CONTAINER_PATH}
     working_dir: /code
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host ${APP_HOST} --port ${APP_PORT} --reload"
+
+  restapi:
+    build: ./rest_api
+    container_name: rest_api_app
+    env_file:
+      - .env
+    ports:
+      - "8002:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=app.settings
+      - RESTAPI_POSTGRES_DB=${RESTAPI_POSTGRES_DB}
+      - RESTAPI_POSTGRES_USER=${RESTAPI_POSTGRES_USER}
+      - RESTAPI_POSTGRES_PASSWORD=${RESTAPI_POSTGRES_PASSWORD}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_DEBUG=${DJANGO_DEBUG}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_PORT=${DATABASE_PORT}
+      - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
+      - PYTHONPATH=/code
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      db_restapi:
+        condition: service_healthy
+    volumes:
+      - ./rest_api:/code
+    working_dir: /code
+    command: sh -c "python manage.py makemigrations scientists patients eeg_sessions --noinput && python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    expose:
+      - "8000"
 
   db_fastapi:
     image: postgres:15
@@ -40,5 +77,34 @@ services:
       timeout: 5s
       retries: 5
 
+  db_restapi:
+    image: postgres:15
+    container_name: postgres_restapi
+    environment:
+      POSTGRES_USER: ${RESTAPI_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${RESTAPI_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${RESTAPI_POSTGRES_DB}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_restapi_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${RESTAPI_POSTGRES_USER} -d ${RESTAPI_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    ports:
+      - "8003:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - restapi
+
 volumes:
   postgres_fastapi_data:
+  postgres_restapi_data:
