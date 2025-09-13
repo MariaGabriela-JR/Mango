@@ -15,9 +15,26 @@ class EEGSessionSerializer(serializers.ModelSerializer):
         
         return super().to_internal_value(data)
 
+    class Meta:
+        model = EEGSession
+        fields = '__all__'
+        read_only_fields = ['session_id', 'created_at', 'updated_at', 'scientist']
+
+class EEGSessionCreateSerializer(serializers.ModelSerializer):
+    patient = serializers.PrimaryKeyRelatedField(
+        queryset=Patient.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
+    def to_internal_value(self, data):
+        if 'patient' in data and data['patient'] == "":
+            data['patient'] == None
+        return super().to_internal_value(data)
+    
     def validate_patient(self, value):
         if value and not Patient.objects.filter(
-            id=value.id, 
+            id=value.id,
             scientist=self.context['request'].user
         ).exists():
             raise serializers.ValidationError(
@@ -25,12 +42,6 @@ class EEGSessionSerializer(serializers.ModelSerializer):
             )
         return value
 
-    class Meta:
-        model = EEGSession
-        fields = '__all__'
-        read_only_fields = ['session_id', 'created_at', 'updated_at', 'scientist']
-
-class EEGSessionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = EEGSession
         fields = [

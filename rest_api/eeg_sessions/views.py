@@ -32,6 +32,7 @@ class EEGSessionDetailView(generics.RetrieveUpdateDestroyAPIView):
 class EEGSessionSyncFastAPIView(generics.UpdateAPIView):
     serializer_class = EEGSessionUpdateSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['patch']
 
     def get_queryset(self):
         if hasattr(self.request.user, 'scientist_id'):
@@ -43,7 +44,7 @@ class EEGSessionSyncFastAPIView(generics.UpdateAPIView):
         
         sync_fields = [
             'edf_file_id', 'trial_index', 'start_time', 'duration',
-            'emotion_category', 'description', 'parameters'
+            'emotion_category', 'description', 'parameters', 'status'
         ]
         
         data = {k: v for k, v in request.data.items() if k in sync_fields}
@@ -55,16 +56,6 @@ class EEGSessionSyncFastAPIView(generics.UpdateAPIView):
         return Response(serializer.data)
 
 class EEGSessionUpdateDataView(generics.UpdateAPIView):
-    serializer_class = EEGSessionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ['patch']
-
-    def get_queryset(self):
-        if hasattr(self.request.user, 'scientist_id'):
-            return EEGSession.objects.filter(scientist=self.request.user)
-        return EEGSession.objects.none()
-
-class EEGSessionSyncFastAPIView(generics.UpdateAPIView):
     serializer_class = EEGSessionSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ['patch']
