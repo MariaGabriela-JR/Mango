@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from .models import Patient
 from .serializers import PatientSerializer
 from rest_framework.generics import get_object_or_404
@@ -10,7 +10,7 @@ class TestPatientCreateView(generics.CreateAPIView):
     queryset = Patient.objects.all()
     serializer_class = PatientSerializer
     permission_classes = [permissions.AllowAny]
-    parser_classes = [FormParser, MultiPartParser]
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -33,7 +33,7 @@ class PatientCreateView(generics.CreateAPIView):
     queryset = Patient.objects.all()
     serializer_class = PatientSerializer
     permission_classes = [permissions.AllowAny]
-    parser_classes = [FormParser, MultiPartParser]
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -75,7 +75,7 @@ class PatientProfileCompletionView(generics.UpdateAPIView):
                 {'error': f'Campos obrigatórios para sessão: {", ".join(missing_fields)}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        return super().update(request, *args, **kwargs)
+        return super().update(request, *args, **kwargs, partial=True)
     
 class PatientListView(generics.ListAPIView):
     serializer_class = PatientSerializer
