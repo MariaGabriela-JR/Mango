@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
 from scientists.models import Scientist
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -20,17 +21,14 @@ class PatientLoginSerializer(TokenObtainPairSerializer):
             )
 
             if not user:
-                msg = 'Credenciais inválidas'
-                raise serializers.ValidationError(msg, code='authorization')
+                raise AuthenticationFailed('Credenciais inválidas')
             
             if not user.is_active:
-                msg = 'Conta desativada'
-                raise serializers.ValidationError(msg, code='authorization')
+                raise AuthenticationFailed('Conta desativada')
             
             from patients.models import Patient
             if not isinstance(user, Patient):
-                msg = 'Usuário não é um paciente'
-                raise serializers.ValidationError(msg, code='authorization')
+                raise AuthenticationFailed('Usuário não é um paciente')
             
             self.user = user
         
@@ -43,7 +41,8 @@ class PatientLoginSerializer(TokenObtainPairSerializer):
             'first_name': self.user.first_name,
             'last_name': self.user.last_name,
             'is_active': self.user.is_active,
-            'is_staff': self.user.is_staff
+            'is_staff': self.user.is_staff,
+            'user_type': 'patient',        
         })
         
         return data
@@ -69,8 +68,7 @@ class ScientistLoginSerializer(TokenObtainPairSerializer):
         user = authenticate(email=email, password=password)
 
         if not user or not hasattr(user, "scientist_id"):
-            msg = "Usuário e/ou senha incorreto(s) ou não é um cientista"
-            raise serializers.ValidationError(msg, code="authorization")
+            raise AuthenticationFailed("Usuário e/ou senha incorreto(s) ou não é um cientista")
 
         refresh = self.get_token(user)
 
