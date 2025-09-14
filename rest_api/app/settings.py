@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     'django_extensions',
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'authentication',
     'patients',
@@ -166,16 +165,16 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=DEBUG, cast=bool)
 
-AUTH_USER_MODEL = 'patients.Patient'
+AUTH_USER_MODEL = 'scientists.Scientist'
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
 }
-
-AUTH_USER_MODEL = 'patients.Patient'
 
 AUTHENTICATION_BACKENDS = [
     "authentication.backends.PatientBackend",
@@ -190,3 +189,11 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='')
 ADMIN_EMAIL = config('ADMIN_EMAIL', default='')
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+
+FASTAPI_DB_CONFIG = {
+    'HOST': os.getenv('FASTAPI_DB_HOST', 'localhost'),
+    'PORT': os.getenv('FASTAPI_DB_PORT', '5440'),
+    'USER': os.getenv('FASTAPI_DB_USER', 'zeim'),
+    'PASSWORD': os.getenv('FASTAPI_DB_PASSWORD', ''),
+    'NAME': os.getenv('FASTAPI_DB_NAME', 'mango_edf_db'),
+}

@@ -97,4 +97,5 @@ class ScientistLoginSerializer(TokenObtainPairSerializer):
         token['scientist_id'] = user.scientist_id
         token['institution'] = user.institution
         token['is_verified'] = user.is_verified
+        token['user_id'] = str(user.id)
         return token
