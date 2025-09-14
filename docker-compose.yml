@@ -94,6 +94,16 @@ services:
       timeout: 5s
       retries: 5
 
+  frontend:
+    build: ./frontend
+    container_name: frontend_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+   
+
   nginx:
     image: nginx:latest
     container_name: nginx_proxy
@@ -106,6 +116,7 @@ services:
     depends_on:
       - restapi
       - fastapi
+      - frontend
 
 volumes:
   postgres_fastapi_data:
