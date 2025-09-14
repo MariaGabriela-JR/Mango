@@ -79,3 +79,44 @@ class AuthTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertIn("detail", response.data)
+
+    def test_me_as_patient(self):
+        """Paciente autenticado consegue acessar /me/"""
+        login_url = reverse("patient-login")
+        response = self.client.post(login_url, {
+            "email": self.patient.email,
+            "password": self.patient_password
+        }, format="json")
+
+        access_token = response.data["access"]
+
+        me_url = reverse("me")
+        response = self.client.get(me_url, HTTP_AUTHORIZATION=f"Bearer {access_token}")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["user_type"], "patient")
+        self.assertEqual(response.data["data"]["email"], self.patient.email)
+
+    def test_me_as_scientist(self):
+        """Cientista autenticado consegue acessar /me/"""
+        login_url = reverse("scientist-login")
+        response = self.client.post(login_url, {
+            "email": self.scientist.email,
+            "password": self.scientist_password
+        }, format="json")
+
+        access_token = response.data["access"]
+
+        me_url = reverse("me")
+        response = self.client.get(me_url, HTTP_AUTHORIZATION=f"Bearer {access_token}")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["user_type"], "scientist")
+        self.assertEqual(response.data["data"]["email"], self.scientist.email)
+
+    def test_me_unauthorized(self):
+        """Usuário não autenticado não consegue acessar /me/"""
+        me_url = reverse("me")
+        response = self.client.get(me_url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
