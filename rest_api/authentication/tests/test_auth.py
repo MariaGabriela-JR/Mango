@@ -120,3 +120,43 @@ class AuthTests(TestCase):
         response = self.client.get(me_url)
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def _get_tokens_for_user(self, user, password, login_url_name):
+        """Função auxiliar para gerar tokens via login"""
+        url = reverse(login_url_name)
+        response = self.client.post(url, {"email": user.email, "password": password}, format="json")
+        return response.data["access"], response.data["refresh"]
+    
+    def test_patient_logout_success(self):
+        """Paciente consegue fazer logout e invalidar refresh token"""
+        _, refresh_token = self._get_tokens_for_user(self.patient, self.patient_password, "patient-login")
+        url = reverse("logout")
+        response = self.client.post(url, {"refresh": refresh_token}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["detail"], "Logout realizado com sucesso")
+
+    def test_scientist_logout_success(self):
+        """Cientista consegue fazer logout e invalidar refresh token"""
+        _, refresh_token = self._get_tokens_for_user(self.scientist, self.scientist_password, "scientist-login")
+        url = reverse("logout")
+        response = self.client.post(url, {"refresh": refresh_token}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["detail"], "Logout realizado com sucesso")
+
+    def test_logout_without_token(self):
+        """Logout sem enviar refresh token retorna erro"""
+        url = reverse("logout")
+        response = self.client.post(url, {}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Refresh token não fornecido", response.data["detail"])
+
+    def test_logout_with_invalid_token(self):
+        """Logout com token inválido retorna erro"""
+        url = reverse("logout")
+        response = self.client.post(url, {"refresh": "token_invalido"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Token inválido ou já expirado", response.data["detail"])
