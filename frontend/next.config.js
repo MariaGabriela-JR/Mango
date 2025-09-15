@@ -3,6 +3,6 @@ const nextConfig = {
   basePath: '/frontend',
   assetPrefix: '/frontend/',
   output: 'standalone',
-};
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig

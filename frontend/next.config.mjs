@@ -2,6 +2,6 @@
 const nextConfig = {
   basePath: '/frontend',
   assetPrefix: '/frontend/',
-};
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig
