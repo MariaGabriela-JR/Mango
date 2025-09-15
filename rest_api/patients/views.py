@@ -2,9 +2,27 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
-from .models import Patient
+from .models import Patient, Scientist
 from .serializers import PatientSerializer
 from rest_framework.generics import get_object_or_404
+from rest_framework.exceptions import PermissionDenied
+
+class ScientistIDMixin:
+    def get_scientist(self):
+        if isinstance(self.request.user, Scientist):
+            return self.request.user
+
+        scientist_id = self.request.headers.get('X-Scientist-ID') or self.request.query_params.get('scientist_id')
+        if not scientist_id:
+            raise PermissionDenied('Scientist ID é obrigatório')
+
+        try:
+            return Scientist.objects.get(id=scientist_id)
+        except Scientist.DoesNotExist:
+            try:
+                return Scientist.objects.get(scientist_id=scientist_id)
+            except Scientist.DoesNotExist:
+                raise PermissionDenied('Cientista não encontrado')
 
 class TestPatientCreateView(generics.CreateAPIView):
     queryset = Patient.objects.all()
@@ -18,7 +36,7 @@ class TestPatientCreateView(generics.CreateAPIView):
         data['is_test'] = True
         data['scientist'] = None
 
-        for field in ['age', 'gender', 'clinical_notes', 'additional_info', 'groups', 'user_permissions', 'scientist', 'is_test']:
+        for field in ['age', 'gender', 'clinical_notes', 'additional_info', 'groups', 'user_permissions', 'is_test']:
             data.pop(field, None)
 
         serializer = self.get_serializer(data=data)
@@ -29,6 +47,7 @@ class TestPatientCreateView(generics.CreateAPIView):
         response_data.pop('password', None)
         return Response(response_data, status=status.HTTP_201_CREATED)
 
+
 class PatientCreateView(generics.CreateAPIView):
     queryset = Patient.objects.all()
     serializer_class = PatientSerializer
@@ -38,14 +57,20 @@ class PatientCreateView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         data['is_active'] = True
-
-        for field in ['age', 'gender', 'clinical_notes', 'additional_info', 'groups', 'user_permissions', 'scientist', 'is_test']:
-            data.pop(field, None)
-
         data['is_test'] = False
 
-        if request.user.is_authenticated and hasattr(request.user, 'scientist_id'):
-            data['scientist'] = request.user.id
+        for field in ['age', 'gender', 'clinical_notes', 'additional_info', 'groups', 'user_permissions', 'is_test']:
+            data.pop(field, None)
+
+        scientist_id = data.get('scientist')
+        if scientist_id:
+            try:
+                scientist = Scientist.objects.get(id=scientist_id)
+                data['scientist'] = scientist.id
+            except Scientist.DoesNotExist:
+                return Response({'error': 'Cientista não encontrado'}, status=status.HTTP_400_BAD_REQUEST)
+            except ValueError:
+                return Response({'error': 'ID do cientista inválido'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             data['scientist'] = None
 
@@ -56,9 +81,9 @@ class PatientCreateView(generics.CreateAPIView):
         headers = self.get_success_headers(serializer.data)
         response_data = serializer.data
         response_data.pop('password', None)
-
         return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
-    
+
+
 class PatientProfileCompletionView(generics.UpdateAPIView):
     serializer_class = PatientSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -76,64 +101,49 @@ class PatientProfileCompletionView(generics.UpdateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         return super().update(request, *args, **kwargs, partial=True)
-    
-class PatientListView(generics.ListAPIView):
+
+
+class PatientListView(ScientistIDMixin, generics.ListAPIView):
     serializer_class = PatientSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        if hasattr(self.request.user, 'scientist_id'):
-            is_test = self.request.query_params.get('is_test', None)
-            queryset = Patient.objects.filter(scientist=self.request.user)
+        scientist = self.get_scientist()
+        is_test = self.request.query_params.get('is_test', None)
+        queryset = Patient.objects.filter(scientist=scientist)
 
-            if is_test is not None:
-                queryset = queryset.filter(is_test=is_test.lower() == 'true')
+        if is_test is not None:
+            queryset = queryset.filter(is_test=is_test.lower() == 'true')
+        return queryset
 
-            return queryset
-        return Patient.objects.none()
 
-class PatientDetailView(generics.RetrieveAPIView):
+class PatientDetailView(ScientistIDMixin, generics.RetrieveAPIView):
     serializer_class = PatientSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        if hasattr(self.request.user, 'scientist_id'):
-            return Patient.objects.filter(scientist=self.request.user)
-        return Patient.objects.none()
-    
-class ScientistUpdatePatientView(generics.UpdateAPIView):
+        scientist = self.get_scientist()
+        return Patient.objects.filter(scientist=scientist)
+
+
+class ScientistUpdatePatientView(ScientistIDMixin, generics.UpdateAPIView):
     serializer_class = PatientSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        if hasattr(self.request.user, 'scientist_id'):
-            return Patient.objects.filter(scientist=self.request.user)
-        return Patient.objects.none()
-    
-    def get_object(self):
-        queryset = self.get_queryset()
-        obj = generics.get_object_or_404(queryset, pk=self.kwargs['pk'])
-        return obj
-    
-    def update(self, request, *args, **kwargs):
-        patient = self.get_object()
-        
-        serializer = self.get_serializer(patient, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        
-        return Response(serializer.data)
-    
+        scientist = self.get_scientist()
+        return Patient.objects.filter(scientist=scientist)
+
+
 class AvailablePatientsListView(generics.ListAPIView):
     serializer_class = PatientSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        if hasattr(self.request.user, 'scientist_id'):
-            return Patient.objects.filter(scientist__isnull=True, is_test=False)
-        return Patient.objects.none()
-    
-class LinkPatientToScientistView(generics.UpdateAPIView):
+        return Patient.objects.filter(scientist__isnull=True, is_test=False)
+
+
+class LinkPatientToScientistView(ScientistIDMixin, generics.UpdateAPIView):
     serializer_class = PatientSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ['patch']
@@ -141,25 +151,21 @@ class LinkPatientToScientistView(generics.UpdateAPIView):
     def get_queryset(self):
         return Patient.objects.filter(scientist__isnull=True, is_test=False)
     
-    def get_object(self):
-        queryset = self.get_queryset()
-        obj = generics.get_object_or_404(queryset, pk=self.kwargs['pk'])
-        return obj
-    
     def patch(self, request, *args, **kwargs):
         patient = self.get_object()
-        
-        patient.scientist = request.user
+        scientist = self.get_scientist()
+
+        patient.scientist = scientist
         patient.save()
         
         serializer = self.get_serializer(patient)
         return Response(serializer.data)
-    
+
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
-
 def check_session_eligibility(request):
-    if not hasattr(request.user, 'patient_iid'):
+    if not hasattr(request.user, 'id'):  # ou checar se request.user é Patient
         return Response(
             {'error': 'Esta funcionalidade é apenas para pacientes'},
             status=status.HTTP_403_FORBIDDEN
