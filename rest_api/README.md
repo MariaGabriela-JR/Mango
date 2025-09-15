@@ -158,4 +158,22 @@ Exemplo de resposta:
 5. Usuário valida sessão (`/auth/me/`).
 6. Finaliza sessão (`/auth/logout/`).
 
+## Setup / Inicialização
 
+1. Clone o repositório:
+
+```bash
+git clone https://github.com/MariaGabriela-JR/Mango.git
+cd seu_diretorio/Mango
+```
+
+2. Suba os containers do Docker (REST API + Banco):
+```bash
+sudo docker-compose up -d --build restapi
+```
+Obs.: As migrations são aplicadas automaticamente, e pacientes de teste são populados automaticamente ao subir o container.
+
+3. Execute os testes da API:
+```bash
+sudo docker-compose exec restapi python3 manage.py test
+```
