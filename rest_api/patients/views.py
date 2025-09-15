@@ -6,6 +6,7 @@ from .models import Patient, Scientist
 from .serializers import PatientSerializer
 from rest_framework.generics import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
+from .fastapi_sync import sync_patient_to_fastapi
 
 class ScientistIDMixin:
     def get_scientist(self):
@@ -43,6 +44,17 @@ class TestPatientCreateView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         patient = serializer.save()
 
+        patient_dict = {
+            "patient_iid": patient.patient_iid,
+            "age": patient.age,
+            "gender": patient.gender,
+            "clinical_notes": patient.clinical_notes,
+            "additional_info": patient.additional_info,
+            "created_at": patient.created_at.isoformat(),
+            "updated_at": patient.updated_at.isoformat(),
+        }
+        sync_patient_to_fastapi(patient_dict)
+
         response_data = serializer.data
         response_data.pop('password', None)
         return Response(response_data, status=status.HTTP_201_CREATED)
@@ -59,7 +71,7 @@ class PatientCreateView(generics.CreateAPIView):
         data['is_active'] = True
         data['is_test'] = False
 
-        for field in ['age', 'gender', 'clinical_notes', 'additional_info', 'groups', 'user_permissions', 'is_test']:
+        for field in ['groups', 'user_permissions', 'is_test']:
             data.pop(field, None)
 
         scientist_id = data.get('scientist')
@@ -77,6 +89,17 @@ class PatientCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         patient = serializer.save()
+
+        patient_dict = {
+            "patient_iid": patient.patient_iid,
+            "age": patient.age,
+            "gender": patient.gender,
+            "clinical_notes": patient.clinical_notes,
+            "additional_info": patient.additional_info,
+            "created_at": patient.created_at.isoformat(),
+            "updated_at": patient.updated_at.isoformat(),
+        }
+        sync_patient_to_fastapi(patient_dict)
 
         headers = self.get_success_headers(serializer.data)
         response_data = serializer.data
@@ -100,7 +123,22 @@ class PatientProfileCompletionView(generics.UpdateAPIView):
                 {'error': f'Campos obrigatórios para sessão: {", ".join(missing_fields)}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        return super().update(request, *args, **kwargs, partial=True)
+
+        response = super().update(request, *args, **kwargs, partial=True)
+
+        patient = self.get_object()
+        patient_dict = {
+            "patient_iid": patient.patient_iid,
+            "age": patient.age,
+            "gender": patient.gender,
+            "clinical_notes": patient.clinical_notes,
+            "additional_info": patient.additional_info,
+            "created_at": patient.created_at.isoformat(),
+            "updated_at": patient.updated_at.isoformat(),
+        }
+        sync_patient_to_fastapi(patient_dict)
+
+        return response
 
 
 class PatientListView(ScientistIDMixin, generics.ListAPIView):
@@ -134,6 +172,23 @@ class ScientistUpdatePatientView(ScientistIDMixin, generics.UpdateAPIView):
         scientist = self.get_scientist()
         return Patient.objects.filter(scientist=scientist)
 
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs, partial=True)
+
+        patient = self.get_object()
+        patient_dict = {
+            "patient_iid": patient.patient_iid,
+            "age": patient.age,
+            "gender": patient.gender,
+            "clinical_notes": patient.clinical_notes,
+            "additional_info": patient.additional_info,
+            "created_at": patient.created_at.isoformat(),
+            "updated_at": patient.updated_at.isoformat(),
+        }
+        sync_patient_to_fastapi(patient_dict)
+
+        return response
+
 
 class AvailablePatientsListView(generics.ListAPIView):
     serializer_class = PatientSerializer
@@ -159,6 +214,18 @@ class LinkPatientToScientistView(ScientistIDMixin, generics.UpdateAPIView):
         patient.save()
         
         serializer = self.get_serializer(patient)
+
+        patient_dict = {
+            "patient_iid": patient.patient_iid,
+            "age": patient.age,
+            "gender": patient.gender,
+            "clinical_notes": patient.clinical_notes,
+            "additional_info": patient.additional_info,
+            "created_at": patient.created_at.isoformat(),
+            "updated_at": patient.updated_at.isoformat(),
+        }
+        sync_patient_to_fastapi(patient_dict)
+
         return Response(serializer.data)
 
 
