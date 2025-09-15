@@ -149,14 +149,13 @@ Exemplo de resposta:
 
 ---
 
-## 8. Resumo do Fluxo Completo
+## 7. Resumo do Fluxo Completo
 
 1. Cientista se registra (`/scientists/register/`) com **first_name, last_name, institution e specialization**. Recebe token temporário de 2 minutos.
 2. Cientista faz login (`/auth/login/scientists/`) e recebe `access` + `refresh`.
 3. Cientista cria pacientes (`/patients/register/`).
 4. Cientista lista pacientes (`/patients/list/`).
 5. Usuário valida sessão (`/auth/me/`).
-6. Renova token (`/auth/token/refresh/`) se necessário.
-7. Finaliza sessão (`/auth/logout/`).
+6. Finaliza sessão (`/auth/logout/`).
 
 
