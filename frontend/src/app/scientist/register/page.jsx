@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import AuthRegister from '@/lib/AuthRegister'
+import authRegister from '@/lib/authRegister'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -21,7 +21,7 @@ export default function RegisterPage() {
     setError('')
 
     try {
-      const result = await AuthRegister(
+      const result = await authRegister(
         email,
         password,
         firstName,
@@ -31,7 +31,7 @@ export default function RegisterPage() {
       )
 
       // Redireciona para página de sucesso passando a mensagem do backend
-      router.push(`/register/success?message=${encodeURIComponent(result.message)}`)
+      router.push(`/scientist/register/success?message=${encodeURIComponent(result.message)}`)
     } catch (err) {
       // Mostra a mensagem de erro exata retornada pelo backend
       setError(err.message)
@@ -126,7 +126,7 @@ export default function RegisterPage() {
 
           <p className="mt-4 text-center">
             Já tem uma conta?{' '}
-            <Link href="/login" className="text-blue-600 hover:underline">
+            <Link href="/scientist/login" className="text-blue-600 hover:underline">
               Fazer login
             </Link>
           </p>
