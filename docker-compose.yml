@@ -2,12 +2,10 @@ services:
   fastapi:
     build: ./fast_api
     container_name: fastapi_app
-    ports:
-      - "8001:8001"
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - APP_HOST=${APP_HOST}
-      - APP_PORT=${APP_PORT}
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8001
       - PYTHONPATH=/code
       - EDF_HOST_PATH=${EDF_HOST_PATH}
       - EDF_CONTAINER_PATH=${EDF_CONTAINER_PATH}
@@ -21,15 +19,17 @@ services:
       - ${EDF_HOST_PATH}:${EDF_CONTAINER_PATH}:ro
       - ${OUTPUT_HOST_PATH:-}:${OUTPUT_CONTAINER_PATH:-}
     working_dir: /code
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host ${APP_HOST} --port ${APP_PORT} --reload"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload"
+    networks:
+      - app-network
+    expose:
+      - "8001"
 
   restapi:
     build: ./rest_api
     container_name: rest_api_app
     env_file:
       - .env
-    ports:
-      - "8002:8000"
     environment:
       - DJANGO_SETTINGS_MODULE=app.settings
       - RESTAPI_POSTGRES_DB=${RESTAPI_POSTGRES_DB}
@@ -38,8 +38,8 @@ services:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_DEBUG=${DJANGO_DEBUG}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
-      - DATABASE_HOST=${DATABASE_HOST}
-      - DATABASE_PORT=${DATABASE_PORT}
+      - DATABASE_HOST=db_restapi
+      - DATABASE_PORT=5432
       - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
       - PYTHONPATH=/code
       - EMAIL_HOST=${EMAIL_HOST}
@@ -57,6 +57,8 @@ services:
       - ./rest_api:/code
     working_dir: /code
     command: sh -c "python manage.py makemigrations scientists patients eeg_sessions authentication --noinput && python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    networks:
+      - app-network
     expose:
       - "8000"
 
@@ -67,8 +69,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_fastapi_data:/var/lib/postgresql/data
     healthcheck:
@@ -76,6 +76,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   db_restapi:
     image: postgres:15
@@ -84,8 +86,6 @@ services:
       POSTGRES_USER: ${RESTAPI_POSTGRES_USER}
       POSTGRES_PASSWORD: ${RESTAPI_POSTGRES_PASSWORD}
       POSTGRES_DB: ${RESTAPI_POSTGRES_DB}
-    ports:
-      - "5433:5432"
     volumes:
       - postgres_restapi_data:/var/lib/postgresql/data
     healthcheck:
@@ -93,31 +93,45 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   frontend:
     build: ./frontend
     container_name: frontend_app
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
       NODE_ENV: production
-   
+    networks:
+      - app-network
+    expose:
+      - "3000"
 
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
     container_name: nginx_proxy
     ports:
       - "443:443"
       - "80:80"
+      - "5440:5440"
+      - "5441:5441"
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/default.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/stream.conf:/etc/nginx/stream.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - restapi
       - fastapi
       - frontend
+      - db_fastapi
+      - db_restapi
+    networks:
+      - app-network
 
 volumes:
   postgres_fastapi_data:
   postgres_restapi_data:
+
+networks:
+  app-network:
+    driver: bridge
