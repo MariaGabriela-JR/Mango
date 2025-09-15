@@ -191,9 +191,11 @@ ADMIN_EMAIL = config('ADMIN_EMAIL', default='')
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
 FASTAPI_DB_CONFIG = {
-    'HOST': os.getenv('FASTAPI_DB_HOST', 'localhost'),
+    'HOST': os.getenv('FASTAPI_DB_USER', 'zeim'),
     'PORT': os.getenv('FASTAPI_DB_PORT', '5440'),
     'USER': os.getenv('FASTAPI_DB_USER', 'zeim'),
     'PASSWORD': os.getenv('FASTAPI_DB_PASSWORD', ''),
     'NAME': os.getenv('FASTAPI_DB_NAME', 'mango_edf_db'),
 }
+
+FASTAPI_URL = "http://fastapi_app:8001/api/patients/"
