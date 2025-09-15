@@ -3,14 +3,8 @@
 import { useEffect, useState } from 'react'
 import { listPatients } from '@/lib/listPatients'
 import Navbar from '@/components/ui/Navbar'
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 import Link from 'next/link'
-=======
->>>>>>> 4b1e246 (feat: implementação das funções básicas de patients)
-=======
-import Link from 'next/link'
->>>>>>> 5a4d937 (fix: função para voltar para telas anteriores)
 
 export default function PatientsList() {
   const [patients, setPatients] = useState([])
@@ -55,10 +49,6 @@ export default function PatientsList() {
             )}
           </>
         )}
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 5a4d937 (fix: função para voltar para telas anteriores)
         <div className="flex gap-4 mt-6">
           <Link href="/dashboard">
             <button className="md:w-32 md:h-12 w-28 bg-[#1a1b1c] dark:bg-white font-sans font-bold rounded-lg text-white dark:text-black hover:bg-black dark:hover:bg-gray-300 transition-colors duration-300">
@@ -71,11 +61,6 @@ export default function PatientsList() {
             </button>
           </Link>
         </div>
-<<<<<<< HEAD
-=======
->>>>>>> 4b1e246 (feat: implementação das funções básicas de patients)
-=======
->>>>>>> 5a4d937 (fix: função para voltar para telas anteriores)
       </div>
     </div>
   )

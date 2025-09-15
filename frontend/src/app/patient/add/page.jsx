@@ -1,22 +1,13 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
+
 // app/register/patient/page.jsx
->>>>>>> 4b1e246 (feat: implementação das funções básicas de patients)
-=======
->>>>>>> 5a4d937 (fix: função para voltar para telas anteriores)
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 import Link from 'next/link'
-=======
->>>>>>> 4b1e246 (feat: implementação das funções básicas de patients)
-=======
-import Link from 'next/link'
->>>>>>> 5a4d937 (fix: função para voltar para telas anteriores)
+
+
 import addPatient from '@/lib/addPatient'
 import Navbar from '@/components/ui/Navbar'
 
@@ -49,22 +40,12 @@ export default function PatientRegisterPage() {
           className="w-full max-w-lg bg-white dark:bg-[#1a1b1c] p-10 rounded-lg shadow-lg"
           onSubmit={handleSubmit}
         >
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 5a4d937 (fix: função para voltar para telas anteriores)
           <Link
             href="/dashboard"
             className="flex w-auto h-auto items-center mb-4 text-blue-600 hover:text-blue-800 cursor-pointer"
           >
             <span className="mr-2 text-2xl"></span> Voltar
           </Link>
-
-<<<<<<< HEAD
-=======
->>>>>>> 4b1e246 (feat: implementação das funções básicas de patients)
-=======
->>>>>>> 5a4d937 (fix: função para voltar para telas anteriores)
           <h1 className="text-4xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">
             Registro de Paciente
           </h1>
