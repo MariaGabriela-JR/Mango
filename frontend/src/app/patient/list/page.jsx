@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { listPatients } from '@/lib/listPatients'
 import Navbar from '@/components/ui/Navbar'
-
 import Link from 'next/link'
 
 export default function PatientsList() {

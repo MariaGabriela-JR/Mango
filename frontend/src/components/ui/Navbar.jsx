@@ -2,10 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-
 import Link from "next/link"
-
-
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -44,15 +41,10 @@ export default function Navbar() {
           <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#1a1b1c] border border-gray-300 dark:border-gray-700 rounded shadow-lg z-10">
             <ul className="flex flex-col">
               <li className="px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer">
-
                 <Link href="/">Home</Link>
               </li>
               <li className="px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer">
                 <Link href="/patient/list">Pacientes</Link>
-                Home
-              </li>
-              <li className="px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer">
-                Pacientes
               </li>
               <li className="px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer">
                 Sessões

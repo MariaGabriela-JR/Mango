@@ -22,12 +22,12 @@ export default function Home() {
 
       {/* Botões */}
       <div className="flex items-center justify-center gap-4 mt-2 animate-fadeIn delay-1000 opacity-0">
-        <Link href="/login">
+        <Link href="/scientist/login">
           <button className="md:w-32 md:h-12 w-28 bg-[#1a1b1c] dark:bg-white font-sans font-bold rounded-lg text-white dark:text-black hover:bg-black dark:hover:bg-gray-300 transition-colors duration-300">
             Login
           </button>
         </Link>
-        <Link href="/register">
+        <Link href="/scientist/register">
           <button className="md:w-32 md:h-12 w-28 bg-[#1a1b1c] dark:bg-white font-sans font-bold rounded-lg text-white dark:text-black hover:bg-black dark:hover:bg-gray-300 transition-colors duration-300">
             Cadastre-se
           </button>

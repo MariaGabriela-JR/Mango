@@ -1,13 +1,8 @@
-
-// app/register/patient/page.jsx
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-
 import Link from 'next/link'
-
-
 import addPatient from '@/lib/addPatient'
 import Navbar from '@/components/ui/Navbar'
 
@@ -46,6 +41,7 @@ export default function PatientRegisterPage() {
           >
             <span className="mr-2 text-2xl"></span> Voltar
           </Link>
+
           <h1 className="text-4xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">
             Registro de Paciente
           </h1>
