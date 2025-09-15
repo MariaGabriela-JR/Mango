@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { getApiUrl } from '@/lib/getApiUrl'
 
-const AuthRegister = async (email, password, firstName, lastName, institution, specialization) => {
+const authRegister = async (email, password, firstName, lastName, institution, specialization) => {
   try {
     const data = {
       email,
@@ -15,6 +15,10 @@ const AuthRegister = async (email, password, firstName, lastName, institution, s
     const response = await axios.post(`${getApiUrl()}/scientists/register/`, data, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
+
+    const { registration_token } = response.data
+
+    localStorage.setItem('registrationToken', registration_token)
 
     // retorna a mensagem do backend em caso de sucesso
     return { success: true, message: response.data.message || 'Conta criada com sucesso!' }
@@ -42,4 +46,4 @@ const AuthRegister = async (email, password, firstName, lastName, institution, s
   }
 }
 
-export default AuthRegister
+export default authRegister
