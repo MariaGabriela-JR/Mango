@@ -4,10 +4,13 @@ from pydantic import BaseModel, Field
 import uuid
 from app.core.enums import ProcessingStatus, EmotionCategory
 
-# EDF
-class EDFFileBase(BaseModel):
+
+# EDF 
+class EDFFileCreateBase(BaseModel):
     patient_iid: str = Field(..., max_length=100)
     file_path: str
+
+class EDFFileBase(EDFFileCreateBase):
     file_name: str = Field(..., max_length=255)
     file_size: Optional[int] = None
     channels: Optional[int] = Field(None, gt=0)
@@ -16,16 +19,18 @@ class EDFFileBase(BaseModel):
     recording_date: Optional[datetime] = None
     processing_status: ProcessingStatus = Field(default=ProcessingStatus.NEW)
 
-class EDFFileCreate(EDFFileBase):
+class EDFFileCreate(EDFFileCreateBase):
     pass
 
 class EDFFileUpdate(BaseModel):
+    file_path: Optional[str] = None
     processing_status: Optional[ProcessingStatus] = None
 
 class EDFFile(EDFFileBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    metadata_json: Dict[str, Any] = Field(default_factory=dict)
 
     model_config = {"from_attributes": True}
 
