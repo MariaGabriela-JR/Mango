@@ -1,93 +1,136 @@
 import os
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Query
-from app.core.preprocessing import validate_and_preprocess, EDFValidationError
-import mne
+from fastapi import APIRouter, HTTPException, Query, Depends, BackgroundTasks
+from sqlalchemy.orm import Session
+from app.core.filters import filter_data
+from app.core.dependencies import discover_files, load_and_validate_file
+from app.core.database import get_db
+from app.core.models import EDFFile, PatientMetadata, Trial
 
 router = APIRouter()
 
-EDF_CONTAINER_PATH = Path(os.getenv("EDF_CONTAINER_PATH", "/data_mango"))
+OUTPUT_CONTAINER_PATH = Path(os.getenv("OUTPUT_CONTAINER_PATH", "/tmp/output"))
 
-output_env = os.getenv("OUTPUT_CONTAINER_PATH")
-if output_env:
-    OUTPUT_CONTAINER_PATH = Path(output_env)
-else:
-    OUTPUT_CONTAINER_PATH = None  # ou Path("/tmp/output") para fallback temporário
-
-
-@router.get("/discover")
-def discover_files():
-    if not EDF_CONTAINER_PATH.exists():
-        raise HTTPException(status_code=500, detail=f"Pasta base não encontrada: {EDF_CONTAINER_PATH}")
-
-    discovered = []
-    for f in EDF_CONTAINER_PATH.rglob("*.edf"):
-        discovered.append({
-            "file_name": f.name,
-            "file_path": str(f),
-            "exists_on_disk": True
-        })
-    return discovered
-
-# --- Aplicar filtros ---
-@router.post("/{file_name}/apply")
-def apply_filters(
+# ---------- HELPERS ----------
+def process_and_save(
     file_name: str,
-    mode: str = Query("standard", enum=["raw", "standard", "custom"]),
-    l_freq: float | None = Query(None, description="Frequência de corte passa-alta"),
-    h_freq: float | None = Query(None, description="Frequência de corte passa-baixa"),
-    notch: float | None = Query(None, description="Frequência notch (ex: 50 ou 60Hz)"),
+    raw,
+    mode: str,
+    db: Session,
+    patient_metadata: dict | None = None,
+    trial_metadata: dict | None = None,
+    config: dict | None = None,
 ):
+    raw_filtered = filter_data(
+        raw,
+        mode=mode,
+        patient_metadata=patient_metadata,
+        trial_metadata=trial_metadata,
+        config=config,
+    )
 
-    found_files = list(EDF_CONTAINER_PATH.rglob(file_name))
-    
-    found_files = [f for f in found_files if f.is_file() and f.name == file_name]
-
-    if not found_files:
-        raise HTTPException(status_code=404, detail=f"Arquivo não encontrado: {file_name}")
-    if len(found_files) > 1:
-        paths = [str(f) for f in found_files]
-        raise HTTPException(
-            status_code=400,
-            detail=f"Múltiplos arquivos com o nome {file_name} encontrados: {paths}"
-        )
-
-    file_path = found_files[0]
-
-    # 2. Carregar e validar arquivo EDF
-    try:
-        raw = validate_and_preprocess(file_path)
-    except EDFValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro inesperado ao carregar EDF: {e}")
-
-    # 3. Aplicar filtros
-    if mode == "raw":
-        message = "Dados crus carregados"
-    elif mode == "standard":
-        raw.filter(l_freq=1.0, h_freq=40.0)
-        raw.notch_filter(freqs=50.0)
-        message = "Filtro padrão aplicado (1-40Hz + notch 50Hz)"
-    elif mode == "custom":
-        if l_freq or h_freq:
-            raw.filter(l_freq=l_freq, h_freq=h_freq)
-        if notch:
-            raw.notch_filter(freqs=notch)
-        message = f"Filtro custom aplicado (l_freq={l_freq}, h_freq={h_freq}, notch={notch})"
-    else:
-        raise HTTPException(status_code=400, detail="Modo inválido")
-
-    # 4. Criar pasta de saída
-    output_dir = OUTPUT_CONTAINER_PATH / file_name.split('_')[0]
+    # Pasta de saída
+    output_dir = OUTPUT_CONTAINER_PATH / file_name.split("_")[0]
     output_dir.mkdir(parents=True, exist_ok=True)
 
     output_path = output_dir / f"{Path(file_name).stem}_filtered.fif"
-    raw.save(output_path, overwrite=True)
+    raw_filtered.save(output_path, overwrite=True)
+
+    # Atualiza status na DB
+    db_file = db.query(EDFFile).filter(EDFFile.file_name == file_name).first()
+    if db_file:
+        db_file.processing_status = "filtered"
+        db.commit()
+        db.refresh(db_file)
+
+    return str(output_path), len(raw_filtered.ch_names), raw_filtered.times[-1]
+
+
+# ---------- ROUTES ----------
+@router.get("/discover")
+def discover():
+    return discover_files()
+
+
+@router.post("/{file_name}/apply")
+def apply_filters(
+    file_name: str,
+    background_tasks: BackgroundTasks,
+    mode: str = Query("standard", enum=["standard", "auto", "custom"]),
+    l_freq: float | None = Query(None, description="Passa-alta (custom)"),
+    h_freq: float | None = Query(None, description="Passa-baixa (custom)"),
+    notch: float | None = Query(None, description="Notch (custom)"),
+    patient_id: str | None = Query(None, description="patient_iid (auto)"),
+    trial_id: str | None = Query(None, description="ID do trial (auto)"),
+    db: Session = Depends(get_db),
+):
+    # Carrega e valida EDF
+    raw, file_path = load_and_validate_file(file_name)
+
+    patient_metadata = None
+    trial_metadata = None
+    config = None
+
+    # ---------- STANDARD ----------
+    if mode == "standard":
+        pass  # Não precisa de config/metadados
+
+    # ---------- AUTO ----------
+    elif mode == "auto":
+        if not patient_id:
+            raise HTTPException(status_code=400, detail="É necessário fornecer patient_id para filtro automático.")
+
+        patient = db.query(PatientMetadata).filter(PatientMetadata.patient_iid == patient_id).first()
+        if not patient:
+            raise HTTPException(status_code=404, detail=f"Paciente {patient_id} não encontrado na base de dados.")
+
+        patient_metadata = {
+            "age": patient.age,
+            "gender": patient.gender,
+            "clinical_notes": patient.clinical_notes,
+            "additional_info": patient.additional_info,
+        }
+
+        if trial_id:
+            trial = db.query(Trial).filter(Trial.id == trial_id).first()
+            if not trial:
+                raise HTTPException(status_code=404, detail=f"Trial {trial_id} não encontrado na base de dados.")
+
+            trial_metadata = {
+                "trial_index": trial.trial_index,
+                "start_time": trial.start_time,
+                "duration": trial.duration,
+                "emotion_category": trial.emotion_category,
+                "description": trial.description,
+                "parameters": trial.parameters,
+            }
+
+    # ---------- CUSTOM ----------
+    elif mode == "custom":
+        config = {}
+        if l_freq:
+            config["highpass"] = l_freq
+        if h_freq:
+            config["lowpass"] = h_freq
+        if notch:
+            config["notch"] = [notch]
+
+    else:
+        raise HTTPException(status_code=400, detail="Modo inválido")
+
+    # ---------- EXECUTA EM BACKGROUND ----------
+    background_tasks.add_task(
+        process_and_save,
+        file_name=file_name,
+        raw=raw,
+        mode=mode,
+        db=db,
+        patient_metadata=patient_metadata,
+        trial_metadata=trial_metadata,
+        config=config,
+    )
 
     return {
-        "message": message,
-        "output_file": str(output_path),
-        "n_channels": len(raw.ch_names),
-        "duration_sec": raw.times[-1]
+        "message": f"Filtro iniciado em background → file_name={file_name}, mode={mode}",
+        "output_dir": str(OUTPUT_CONTAINER_PATH / file_name.split("_")[0]),
     }

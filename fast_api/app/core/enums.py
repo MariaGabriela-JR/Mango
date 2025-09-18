@@ -1,34 +1,26 @@
-# app/enums.py
+
 from enum import Enum
 
+# ---------- PROCESSING STATUS ----------
 class ProcessingStatus(str, Enum):
     NEW = "new"
-    PROCESSING = "processing"
-    DONE = "done"
-    ERROR = "error"
+    VALIDATED = "validated"
+    FILTERED = "filtered"
+    DELETED = "deleted"
 
+# ---------- EMOTION CATEGORY ----------
 class EmotionCategory(str, Enum):
-    JOY = "joy"
-    INSPIRATION = "inspiration"
-    TENDERNESS = "tenderness"
-    SADNESS = "sadness"
-    FEAR = "fear"
-    DISGUST = "disgust"
-    NEUTRAL = "neutral"# app/enums.py
-from enum import Enum
-
-class ProcessingStatus(str, Enum):
-    NEW = "new"
-    PROCESSING = "processing"
-    DONE = "done"
-    ERROR = "error"
-
-class EmotionCategory(str, Enum):
-    JOY = "joy"
-    INSPIRATION = "inspiration"
-    TENDERNESS = "tenderness"
-    SADNESS = "sadness"
-    FEAR = "fear"
-    DISGUST = "disgust"
+    HAPPY = "happy"
+    SAD = "sad"
+    ANGRY = "angry"
     NEUTRAL = "neutral"
+    FEAR = "fear"
+    DISGUST = "disgust"
+    SURPRISE = "surprise"
 
+# ---------- GENDER ----------
+class Gender(str, Enum):
+    MALE = "male"
+    FEMALE = "female"
+    OTHER = "other"
+    UNKNOWN = "unknown"

@@ -10,15 +10,14 @@ import os
 
 router = APIRouter()
 
+# ---------- HELPERS ----------
 def extract_metadata(raw, file_path: str):
     file_size = Path(file_path).stat().st_size
 
     annotations = []
     if len(raw.annotations) > 0:
         df = raw.annotations.to_data_frame()
-        # converte para dict serializável
         annotations = df.to_dict(orient="records")
-        # garante que timestamps virem string
         for ann in annotations:
             for k, v in ann.items():
                 if hasattr(v, "isoformat"):  
@@ -39,6 +38,7 @@ def extract_metadata(raw, file_path: str):
         }
     }
 
+# ---------- ROUTES ----------
 @router.get("/", response_model=list[EDFFileSchema])
 def get_edf_files(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(EDFFileModel).offset(skip).limit(limit).all()
@@ -54,24 +54,23 @@ def get_edf_file(file_id: uuid.UUID, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=EDFFileSchema, status_code=status.HTTP_201_CREATED)
 def create_edf_file(file_data: EDFFileCreate, db: Session = Depends(get_db)):
-    # Evita duplicata
+
     existing_file = db.query(EDFFileModel).filter(EDFFileModel.file_path == file_data.file_path).first()
     if existing_file:
         raise HTTPException(status_code=400, detail="File with this path already exists")
 
-    # Valida EDF com MNE
     try:
         raw = validate_and_preprocess(file_data.file_path)
     except EDFValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Coleta metadados
     meta = extract_metadata(raw, file_data.file_path)
 
     db_file = EDFFileModel(
         patient_iid=file_data.patient_iid,
         file_path=file_data.file_path,
         file_name=os.path.basename(file_data.file_path),
+        processing_status="validated",
         **meta
     )
 
@@ -87,7 +86,6 @@ def update_edf_file(file_id: uuid.UUID, file_data: EDFFileUpdate, db: Session = 
     if not db_file:
         raise HTTPException(status_code=404, detail="EDF file not found")
 
-    # Caso `file_path` for atualizado, revalida + coleta novos metadados
     if file_data.file_path:
         try:
             raw = validate_and_preprocess(file_data.file_path)
@@ -95,6 +93,7 @@ def update_edf_file(file_id: uuid.UUID, file_data: EDFFileUpdate, db: Session = 
             for k, v in meta.items():
                 setattr(db_file, k, v)
             db_file.file_name = os.path.basename(file_data.file_path)
+            db_file.processing_status = "validated"
         except EDFValidationError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -112,7 +111,6 @@ def delete_edf_file(file_id: uuid.UUID, db: Session = Depends(get_db)):
     if not db_file:
         raise HTTPException(status_code=404, detail="EDF file not found")
 
-    db.delete(db_file)
+    db_file.processing_status = "deleted"
     db.commit()
     return
-

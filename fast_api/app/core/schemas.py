@@ -1,11 +1,11 @@
+
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 import uuid
-from app.core.enums import ProcessingStatus, EmotionCategory
+from app.core.enums import ProcessingStatus, EmotionCategory, Gender
 
-
-# EDF 
+# ---------- EDF FILE BASE ----------
 class EDFFileCreateBase(BaseModel):
     patient_iid: str = Field(..., max_length=100)
     file_path: str
@@ -19,6 +19,7 @@ class EDFFileBase(EDFFileCreateBase):
     recording_date: Optional[datetime] = None
     processing_status: ProcessingStatus = Field(default=ProcessingStatus.NEW)
 
+# ---------- EDF FILE CREATE / UPDATE ----------
 class EDFFileCreate(EDFFileCreateBase):
     pass
 
@@ -26,6 +27,7 @@ class EDFFileUpdate(BaseModel):
     file_path: Optional[str] = None
     processing_status: Optional[ProcessingStatus] = None
 
+# ---------- EDF FILE RESPONSE ----------
 class EDFFile(EDFFileBase):
     id: uuid.UUID
     created_at: datetime
@@ -34,7 +36,7 @@ class EDFFile(EDFFileBase):
 
     model_config = {"from_attributes": True}
 
-# Trials
+# ---------- TRIAL BASE ----------
 class TrialBase(BaseModel):
     trial_index: int
     start_time: float = Field(..., ge=0)
@@ -43,6 +45,7 @@ class TrialBase(BaseModel):
     description: Optional[str] = None
     parameters: Dict[str, Any] = Field(default_factory=dict)
 
+# ---------- TRIAL CREATE / UPDATE ----------
 class TrialCreate(TrialBase):
     edf_file_id: uuid.UUID
 
@@ -54,40 +57,36 @@ class TrialUpdate(BaseModel):
     description: Optional[str] = None
     parameters: Optional[Dict[str, Any]] = None
 
+# ---------- TRIAL RESPONSE ----------
 class Trial(TrialBase):
     id: uuid.UUID
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
-# Patients
+# ---------- PATIENT METADATA BASE ----------
 class PatientMetadataBase(BaseModel):
-    patient_iid: str = Field(..., max_length=100)  # manter patient_iid para bater com models.py
+    patient_iid: str = Field(..., max_length=100)
     age: Optional[int] = Field(None, gt=0, lt=120)
-    gender: Optional[str] = Field(None, max_length=20)
+    gender: Optional[Gender] = None  # enum
     clinical_notes: Optional[str] = None
     additional_info: Dict[str, Any] = Field(default_factory=dict)
 
+# ---------- PATIENT CREATE ----------
 class PatientMetadataCreate(PatientMetadataBase):
     pass
 
+# ---------- PATIENT UPDATE ----------
 class PatientMetadataUpdate(BaseModel):
     age: Optional[int] = None
-    gender: Optional[str] = None
+    gender: Optional[Gender] = None  # enum
     clinical_notes: Optional[str] = None
     additional_info: Optional[Dict[str, Any]] = None
 
+# ---------- PATIENT RESPONSE ----------
 class PatientMetadata(PatientMetadataBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
-
-# Relations
-class EDFFileWithTrials(EDFFile):
-    trials: List[Trial] = []
-
-class PatientWithFiles(PatientMetadata):
-    edf_files: List[EDFFile] = []
-
