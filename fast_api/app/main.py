@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.api import edf_files, patient_metadata, trials, auth, preprocessing_api, filters_api
+from app.api import edf_files, patient_metadata, trials, preprocessing_api, filters_api
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,7 +28,6 @@ app.add_middleware(
 )
 
 # routers
-app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(edf_files.router, prefix="/api/edf-files", tags=["EDF Files"])
 app.include_router(patient_metadata.router, prefix="/api/patients", tags=["Patients"])
 app.include_router(trials.router, prefix="/api/trials", tags=["Trials"])
