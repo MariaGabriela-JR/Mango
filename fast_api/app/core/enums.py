@@ -1,9 +1,9 @@
-
 from enum import Enum
 
 # ---------- PROCESSING STATUS ----------
 class ProcessingStatus(str, Enum):
     NEW = "new"
+    ACTIVE = "active"
     VALIDATED = "validated"
     FILTERED = "filtered"
     DELETED = "deleted"

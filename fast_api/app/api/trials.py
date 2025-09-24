@@ -1,15 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.core.models import Trial as TrialModel, EDFFile as EDFFileModel 
-from app.core.schemas import TrialCreate, TrialUpdate, Trial as TrialSchema
+from app.core.schemas import TrialCreate, TrialUpdate, Trial as TrialSchema, TrialSimple 
 import uuid
 
 router = APIRouter()
 
-@router.get("/", response_model=list[TrialSchema])
+@router.get("/", response_model=list[TrialSimple])
 def get_trials(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(TrialModel).offset(skip).limit(limit).all()
+    return (
+        db.query(TrialModel)
+        .options(joinedload(TrialModel.edf_file))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
 
 @router.get("/{trial_id}", response_model=TrialSchema)
 def get_trial(trial_id: uuid.UUID, db: Session = Depends(get_db)):
