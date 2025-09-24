@@ -3,15 +3,46 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.core.filters import filter_data
-from app.core.dependencies import discover_files, load_and_validate_file
+from app.core.preprocessing import validate_and_preprocess, EDFValidationError
 from app.core.database import get_db
 from app.core.models import EDFFile, PatientMetadata, Trial
 
 router = APIRouter()
-
+DATA_CONTAINER_PATH = Path(os.getenv("EDF_CONTAINER_PATH", "/data"))
 OUTPUT_CONTAINER_PATH = Path(os.getenv("OUTPUT_CONTAINER_PATH", "/tmp/output"))
 
 # ---------- HELPERS ----------
+def discover_files(data_dir: str = DATA_CONTAINER_PATH):
+    edf_files = []
+    data_path = Path(data_dir)
+    
+    if not data_path.exists():
+        return []
+    
+    for file_path in data_path.rglob("*.edf"):
+        edf_files.append({
+            "path": str(file_path),
+            "name": file_path.name,
+            "size": file_path.stat().st_size
+        })
+    
+    return edf_files
+
+
+def load_and_validate_file(file_name: str):
+    data_dir = DATA_CONTAINER_PATH
+    file_path = data_dir / file_name
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {file_name}")
+    
+    try:
+        raw = validate_and_preprocess(str(file_path))
+        return raw, str(file_path)
+    except EDFValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 def process_and_save(
     file_name: str,
     raw,
