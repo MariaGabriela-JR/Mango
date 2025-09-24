@@ -19,7 +19,6 @@ services:
       - ${EDF_HOST_PATH}:${EDF_CONTAINER_PATH}:ro
       - ${OUTPUT_HOST_PATH:-}:${OUTPUT_CONTAINER_PATH:-}
     working_dir: /code
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload"
     networks:
       - app-network
     expose:
