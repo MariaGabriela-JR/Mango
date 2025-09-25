@@ -24,7 +24,6 @@ share/python-wheels/
 MANIFEST
 
 
-
 *.pem
 *.key
 # PyInstaller
@@ -58,6 +57,10 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+*/migrations/*
+!*/migrations/__init__.py
+rest_api/*/migrations/*
+!rest_api/*/migrations/__init__.py
 
 # Flask stuff:
 instance/
@@ -122,7 +125,6 @@ logs/
 
 # Data files
 *.csv
-*.json
 *.h5
 *.hdf5
 *.edf
