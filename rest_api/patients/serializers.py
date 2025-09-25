@@ -3,6 +3,8 @@ from .models import Patient
 from scientists.models import Scientist
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 class PatientSerializer(serializers.ModelSerializer):
     scientist = serializers.PrimaryKeyRelatedField(
@@ -10,6 +12,7 @@ class PatientSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    age = serializers.ReadOnlyField()
 
     class Meta:
         model = Patient
@@ -20,10 +23,47 @@ class PatientSerializer(serializers.ModelSerializer):
             'groups': {'read_only': True},
             'user_permissions': {'read_only': True},
             'is_active': {'read_only': True},
-            'is_test': {'read_only': True}
+            'is_test': {'read_only': True},
+            'cpf': {'required': True},
+            'email': {'required': False},
         }
 
+    
+    def validate_password(self, value):
+        if not value or len(value) < 8:
+            raise serializers.ValidationError("A senha deve ter pelo menos 8 caracteres.")
+        return value
+
+    def validate_birth_date(self, value):
+        """Validação da data de nascimento"""
+        if value:
+            if value > date.today():
+                raise serializers.ValidationError("Data de nascimento não pode ser no futuro")
+            # Verifica se a pessoa tem pelo menos 1 ano
+            age = relativedelta(date.today(), value).years
+            if age < 1:
+                raise serializers.ValidationError("Paciente deve ter pelo menos 1 ano")
+            if age > 120:
+                raise serializers.ValidationError("Data de nascimento inválida")
+        return value
+
+    def validate_cpf(self, value):
+        """Validação básica do CPF"""
+        if value:
+            # Remove formatação
+            cpf_clean = ''.join(filter(str.isdigit, value))
+            if len(cpf_clean) != 11:
+                raise serializers.ValidationError("CPF deve ter 11 dígitos")
+            # Verifica se já existe
+            if Patient.objects.filter(cpf=cpf_clean).exists():
+                raise serializers.ValidationError("CPF já cadastrado")
+        return value
+
     def create(self, validated_data):
+        # Formata CPF (remove caracteres especiais)
+        if 'cpf' in validated_data:
+            validated_data['cpf'] = ''.join(filter(str.isdigit, validated_data['cpf']))
+        
         groups_data = validated_data.pop('groups', [])
         user_permissions_data = validated_data.pop('user_permissions', [])
 
@@ -44,6 +84,10 @@ class PatientSerializer(serializers.ModelSerializer):
         return instance
     
     def update(self, instance, validated_data):
+        # Formata CPF se estiver sendo atualizado
+        if 'cpf' in validated_data:
+            validated_data['cpf'] = ''.join(filter(str.isdigit, validated_data['cpf']))
+        
         groups_data = validated_data.pop('groups', None)
         user_permissions_data = validated_data.pop('user_permissions', None)
 
@@ -61,3 +105,38 @@ class PatientSerializer(serializers.ModelSerializer):
             instance.user_permissions.set(user_permissions_data)
 
         return instance
+
+class PatientCPFLoginSerializer(TokenObtainPairSerializer):
+    """Serializer para login com CPF"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields[self.username_field] = serializers.CharField(required=True)
+        self.fields['password'] = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        # Formata CPF
+        cpf = ''.join(filter(str.isdigit, attrs.get('cpf', '')))
+        attrs['cpf'] = cpf
+        
+        authenticate_kwargs = {
+            self.username_field: cpf,
+            'password': attrs['password']
+        }
+        
+        try:
+            authenticate_kwargs['request'] = self.context['request']
+        except KeyError:
+            pass
+
+        self.user = authenticate(**authenticate_kwargs)
+
+        if self.user is None or not self.user.is_active:
+            raise serializers.ValidationError('CPF ou senha incorretos')
+
+        data = {}
+        refresh = self.get_token(self.user)
+
+        data['refresh'] = str(refresh)
+        data['access'] = str(refresh.access_token)
+
+        return data
