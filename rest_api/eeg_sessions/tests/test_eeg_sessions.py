@@ -5,6 +5,7 @@ from rest_framework import status
 from scientists.models import Scientist
 from patients.models import Patient
 from eeg_sessions.models import EEGSession
+from datetime import date, timedelta
 
 class EEGSessionTests(TestCase):
     def setUp(self):
@@ -36,7 +37,7 @@ class EEGSessionTests(TestCase):
             first_name="EEG Test",
             last_name="Patient",
             email="eeg.patient@test.com",
-            age=25,
+            birth_date="1998-09-24",
             gender="F"
         )
         
@@ -239,7 +240,7 @@ class EEGSessionTests(TestCase):
             scientist=self.other_scientist,
             first_name='Other',
             last_name='Patient',
-            age=30,
+            birth_date=date.today() - timedelta(days=30*365),
             gender='M'
         )
         
