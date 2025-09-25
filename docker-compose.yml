@@ -55,7 +55,13 @@ services:
     volumes:
       - ./rest_api:/code
     working_dir: /code
-    command: sh -c "python manage.py makemigrations scientists patients eeg_sessions authentication --noinput && python manage.py migrate --noinput && python3 scripts/populate_test_patients.py && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "
+        python manage.py makemigrations scientists patients eeg_sessions authentication --noinput && 
+        python manage.py migrate --noinput && 
+        echo '=== EXECUTANDO POPULATE SCRIPT ===' && 
+        python3 scripts/populate_test_patients.py || echo '=== SCRIPT FALHOU ===' && 
+        python manage.py runserver 0.0.0.0:8000
+      "
     networks:
       - app-network
     expose:
@@ -107,7 +113,7 @@ services:
       - "3000"
 
   nginx:
-    image: nginx:alpine
+    build: ./nginx
     container_name: nginx_proxy
     ports:
       - "443:443"
@@ -117,7 +123,9 @@ services:
     volumes:
       - ./nginx/default.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/stream.conf:/etc/nginx/stream.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/entrypoint.sh:/entrypoint.sh
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
     depends_on:
       - restapi
       - fastapi
@@ -126,6 +134,59 @@ services:
       - db_restapi
     networks:
       - app-network
+  gateway:
+    build: ./gateway
+    container_name: gateway_app
+    environment:
+      - RESTAPI_URL=http://restapi:8000
+      - FASTAPI_URL=http://fastapi:8001
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+      - QUEUE_NAME=patients
+    depends_on:
+      restapi:
+        condition: service_started
+      fastapi:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+    expose:
+      - "8080"
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+  worker:
+    build: ./worker
+    container_name: worker
+    env_file:
+      - .env
+    environment:
+      - QUEUE_NAME=patients
+      - FAST_URL=http://fastapi_app:8001/fastapi/api/patients/
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+    depends_on:
+      - rabbitmq
+      - fastapi
+    networks:
+      - app-network
+    command: python main.py
+    working_dir: /app
+    volumes:
+      - ./worker:/app
 
 volumes:
   postgres_fastapi_data:
