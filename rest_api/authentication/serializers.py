@@ -2,49 +2,50 @@ from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
 from scientists.models import Scientist
+from patients.models import Patient
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class PatientLoginSerializer(TokenObtainPairSerializer):
-    email = serializers.EmailField()
+    username_field = "cpf"
+    cpf = serializers.CharField()
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
 
     def validate(self, attrs):
-        email = attrs.get('email')
+        cpf = attrs.get('cpf')
         password = attrs.get('password')
 
-        if email and password:
-            user = authenticate(
-                request=self.context.get('request'),
-                email=email,
-                password=password
-            )
+        if not cpf or not password:
+            raise AuthenticationFailed('CPF e senha são obrigatórios.')
 
-            if not user:
-                raise AuthenticationFailed('Credenciais inválidas')
-            
-            if not user.is_active:
-                raise AuthenticationFailed('Conta desativada')
-            
-            from patients.models import Patient
-            if not isinstance(user, Patient):
-                raise AuthenticationFailed('Usuário não é um paciente')
-            
-            self.user = user
-        
+        try:
+            user = Patient.objects.get(cpf=cpf)
+        except Patient.DoesNotExist:
+            raise AuthenticationFailed('CPF ou senha incorretos.')
+
+        if not user.check_password(password):
+            raise AuthenticationFailed('CPF ou senha incorretos.')
+
+        if not user.is_active:
+            raise AuthenticationFailed('Conta desativada, entre em contato com o suporte.')
+
+        self.user = user
         data = super().validate(attrs)
-        
+
         data.update({
             'id': self.user.id,
             'patient_iid': self.user.patient_iid,
-            'email': self.user.email,
+            'cpf': self.user.cpf,
             'first_name': self.user.first_name,
             'last_name': self.user.last_name,
             'is_active': self.user.is_active,
             'is_staff': self.user.is_staff,
-            'user_type': 'patient',        
+            'user_type': 'patient',
         })
-        
+
         return data
 
     @classmethod
@@ -99,3 +100,28 @@ class ScientistLoginSerializer(TokenObtainPairSerializer):
         token['is_verified'] = user.is_verified
         token['user_id'] = str(user.id)
         return token
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ['first_name', 'last_name', 'email', 'password']
+
+    def validate_email(self, value):
+        user = self.context["request"].user
+        if User.objects.exclude(id=user.id).filter(email=value).exists():
+            raise serializers.ValidationError("Este email já está em uso.")
+        return value
+
+    def validate_password(self, value):
+        if value and len(value) < 8:
+            raise serializers.ValidationError("A senha deve ter pelo menos 8 caracteres.")
+        return value
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
