@@ -98,6 +98,7 @@ class EDFFile(EDFFileBase):
     model_config = {"from_attributes": True}
 
 
+
 # -------------------- PATIENT METADATA --------------------
 
 # Schema simplificado para listagem
@@ -138,3 +139,39 @@ class PatientMetadata(PatientMetadataBase):
     deleted_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+
+# -------------------- CHUNKS --------------------
+
+class EEGChunkInfo(BaseModel):
+    chunk_index: int
+    start_time: float
+    end_time: float
+    duration: float
+    is_full_chunk: bool
+
+class EEGChunksSummaryResponse(BaseModel):
+    edf_file_id: uuid.UUID
+    total_duration: float
+    chunk_count: int
+
+
+class EEGChunkRequest(BaseModel):
+    edf_file_id: uuid.UUID
+    chunk_index: int
+    width: int = 800
+    height: int = 400
+    channels: Optional[List[str]] = None
+
+class EEGChunksResponse(BaseModel):
+    edf_file_id: uuid.UUID
+    total_duration: float
+    sample_frequency: float
+    channel_labels: List[str]
+    chunks: List[EEGChunkInfo]
+    chunk_count: int
+
+class EEGPlotResponse(BaseModel):
+    png_data: str
+    chunk_info: EEGChunkInfo
+    generated_at: datetime

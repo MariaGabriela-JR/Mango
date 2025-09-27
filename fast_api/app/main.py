@@ -1,9 +1,15 @@
-# app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-
-from app.api import edf_files, patient_metadata, trials, preprocessing_api, filters_api
+from app.api import (
+        edf_files,
+        patient_metadata,
+        trials,
+        preprocessing_api,
+        filters_api,
+        chunks_api,
+        plots_api
+        )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,6 +39,8 @@ app.include_router(patient_metadata.router, prefix="/api/patients", tags=["Patie
 app.include_router(trials.router, prefix="/api/trials", tags=["Trials"])
 app.include_router(preprocessing_api.router, prefix="/api/preprocessing", tags=["Preprocessing"])
 app.include_router(filters_api.router, prefix="/api/filters", tags=["Filters"])
+app.include_router(chunks_api.router, prefix="/api", tags=["chunks"])
+app.include_router(plots_api.router, prefix="/api", tags=["plots"])
 
 @app.get("/")
 async def root():
