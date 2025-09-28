@@ -15,14 +15,14 @@ class CustomJWTAuthentication(JWTAuthentication):
             elif user_type == 'patient':
                 return Patient.objects.get(pk=user_id)
             else:
-                raise AuthenticationFailed('Tipo de usuário inválido no token')
+                raise AuthenticationFailed('User type invalid on token')
                 
         except Scientist.DoesNotExist:
-            raise AuthenticationFailed('Cientista não encontrado')
+            raise AuthenticationFailed('Scientist not found')
         except Patient.DoesNotExist:
-            raise AuthenticationFailed('Paciente não encontrado')
+            raise AuthenticationFailed('Patient not found')
         except Exception as e:
-            raise AuthenticationFailed(f'Erro de autenticação: {str(e)}')
+            raise AuthenticationFailed(f'Authentication error: {str(e)}')
 
 class UniversalAuthBackend(BaseBackend):
     def authenticate(self, request, email=None, password=None, **kwargs):

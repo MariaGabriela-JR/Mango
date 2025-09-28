@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.utils.crypto import get_random_string
+from datetime import date
 import uuid
 
 class ScientistManager(BaseUserManager):
@@ -29,6 +30,9 @@ class ScientistManager(BaseUserManager):
 class Scientist(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     scientist_id = models.CharField(max_length=100, unique=True, db_index=True)
+    gender = models.CharField(max_length=20, choices=[("Male", "male"), ("Female", "female"), ("Other", "other")], null=True, blank=True)
+    birth_date = models.DateField(null=True, blank=True)
+    profile_picture = models.ImageField( upload_to="scientists/profile_pictures/", null=True, blank=True)
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=30, blank=True)
@@ -76,3 +80,14 @@ class Scientist(AbstractBaseUser, PermissionsMixin):
             self.scientist_id = f"{self.scientist_id}_{unique_salt}"[:100]
         
         super().save(*args, **kwargs)
+        
+    @property
+    def age(self):
+        if not self.birth_date:
+            return None
+        today = date.today()
+        age = today.year - self.birth_date.year
+        # Ajusta caso o aniversário ainda não tenha ocorrido este ano
+        if (today.month, today.day) < (self.birth_date.month, self.birth_date.day):
+            age -= 1
+        return age

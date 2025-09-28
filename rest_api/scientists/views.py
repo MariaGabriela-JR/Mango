@@ -45,7 +45,7 @@ class ScientistCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         scientist = serializer.save(
-            is_verified=False,
+            is_verified=True,
             verification_token=verification_token
         )
 

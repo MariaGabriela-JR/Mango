@@ -31,20 +31,20 @@ class PatientSerializer(serializers.ModelSerializer):
     
     def validate_password(self, value):
         if not value or len(value) < 8:
-            raise serializers.ValidationError("A senha deve ter pelo menos 8 caracteres.")
+            raise serializers.ValidationError("The password must have 8 digits")
         return value
 
     def validate_birth_date(self, value):
         """Validação da data de nascimento"""
         if value:
             if value > date.today():
-                raise serializers.ValidationError("Data de nascimento não pode ser no futuro")
+                raise serializers.ValidationError("Birth date can't be in the future.")
             # Verifica se a pessoa tem pelo menos 1 ano
             age = relativedelta(date.today(), value).years
             if age < 1:
-                raise serializers.ValidationError("Paciente deve ter pelo menos 1 ano")
+                raise serializers.ValidationError("Patient must have at least 1 year old")
             if age > 120:
-                raise serializers.ValidationError("Data de nascimento inválida")
+                raise serializers.ValidationError("Invalid birth date")
         return value
 
     def validate_cpf(self, value):
@@ -53,10 +53,10 @@ class PatientSerializer(serializers.ModelSerializer):
             # Remove formatação
             cpf_clean = ''.join(filter(str.isdigit, value))
             if len(cpf_clean) != 11:
-                raise serializers.ValidationError("CPF deve ter 11 dígitos")
+                raise serializers.ValidationError("CPF must have 11 digits")
             # Verifica se já existe
             if Patient.objects.filter(cpf=cpf_clean).exists():
-                raise serializers.ValidationError("CPF já cadastrado")
+                raise serializers.ValidationError("CPF already registered")
         return value
 
     def create(self, validated_data):
@@ -69,6 +69,11 @@ class PatientSerializer(serializers.ModelSerializer):
 
         password = validated_data.pop('password', None)
         validated_data['is_active'] = True
+
+        scientist = self.context.get('scientist', None)
+        if scientist:
+            validated_data['scientist'] = scientist
+        
         instance = self.Meta.model(**validated_data)
 
         if password is not None:
@@ -131,7 +136,7 @@ class PatientCPFLoginSerializer(TokenObtainPairSerializer):
         self.user = authenticate(**authenticate_kwargs)
 
         if self.user is None or not self.user.is_active:
-            raise serializers.ValidationError('CPF ou senha incorretos')
+            raise serializers.ValidationError('CPF or password is incorrect')
 
         data = {}
         refresh = self.get_token(self.user)

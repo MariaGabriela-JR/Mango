@@ -17,7 +17,7 @@ class ScientistIDMixin:
 
         scientist_id = self.request.headers.get('X-Scientist-ID') or self.request.query_params.get('scientist_id')
         if not scientist_id:
-            raise PermissionDenied('Scientist ID é obrigatório')
+            raise PermissionDenied('Scientist ID is obligatory')
 
         try:
             return Scientist.objects.get(id=scientist_id)
@@ -25,7 +25,7 @@ class ScientistIDMixin:
             try:
                 return Scientist.objects.get(scientist_id=scientist_id)
             except Scientist.DoesNotExist:
-                raise PermissionDenied('Cientista não encontrado')
+                raise PermissionDenied('Scientist not found')
             
 class PatientListView(ScientistIDMixin, generics.ListAPIView):
     serializer_class = PatientSerializer
@@ -167,11 +167,17 @@ class PatientCreateView(generics.CreateAPIView):
                 scientist = Scientist.objects.get(id=scientist_id)
                 data['scientist'] = scientist.id
             except Scientist.DoesNotExist:
-                return Response({'error': 'Cientista não encontrado'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Scientist not found.'}, status=status.HTTP_400_BAD_REQUEST)
             except ValueError:
-                return Response({'error': 'ID do cientista inválido'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Scientist ID is not valid.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             data['scientist'] = None
+
+        user = request.user
+        if isinstance(user, Scientist):
+            data['scientist'] = user.id
+        else:
+            return Response({'error': 'The creation of patients can only be made by scientists.'}, status=403)
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -202,13 +208,12 @@ class PatientProfileCompletionView(generics.UpdateAPIView):
         return self.request.user
     
     def update(self, request, *args, **kwargs):
-        # Agora verifica birth_date em vez de age
         required_fields = ['birth_date', 'gender']
         missing_fields = [field for field in required_fields if field not in request.data]
 
         if missing_fields:
             return Response(
-                {'error': f'Campos obrigatórios para sessão: {", ".join(missing_fields)}'},
+                {'error': f'Obligatory fields for the session: {", ".join(missing_fields)}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -218,7 +223,7 @@ class PatientProfileCompletionView(generics.UpdateAPIView):
         patient_dict = {
             "patient_iid": patient.patient_iid,
             "birth_date": patient.birth_date.isoformat() if patient.birth_date else None,
-            "age": patient.age,  # Calculado automaticamente
+            "age": patient.age,
             "gender": patient.gender,
             "clinical_notes": patient.clinical_notes,
             "additional_info": patient.additional_info,
@@ -229,19 +234,16 @@ class PatientProfileCompletionView(generics.UpdateAPIView):
 
         return response
 
-# ... (as outras views permanecem similares, mas atualizam o patient_dict)
-
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def check_session_eligibility(request):
     if not hasattr(request.user, 'id'):
         return Response(
-            {'error': 'Esta funcionalidade é apenas para pacientes'},
+            {'error': 'This feature is only for patients'},
             status=status.HTTP_403_FORBIDDEN
         )
     
     patient = request.user
-    # Agora verifica birth_date em vez de age
     required_fields = {
         'birth_date': patient.birth_date is not None,
         'gender': patient.gender is not None and patient.gender.strip() != ''
@@ -253,5 +255,5 @@ def check_session_eligibility(request):
         'eligible': is_eligible,
         'missing_fields': [field for field, present in required_fields.items() if not present],
         'patient_data': PatientSerializer(patient).data,
-        'calculated_age': patient.age  # Idade calculada automaticamente
+        'calculated_age': patient.age
     })

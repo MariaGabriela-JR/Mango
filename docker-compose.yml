@@ -59,7 +59,8 @@ services:
         python manage.py makemigrations scientists patients eeg_sessions authentication --noinput && 
         python manage.py migrate --noinput && 
         echo '=== EXECUTANDO POPULATE SCRIPT ===' && 
-        python3 scripts/populate_test_patients.py || echo '=== SCRIPT FALHOU ===' && 
+        python3 scripts/populate_test_patients.py &&
+        python3 scripts/populate_scientists.py || echo '=== SCRIPT FALHOU ===' && 
         python manage.py runserver 0.0.0.0:8000
       "
     networks:
@@ -170,7 +171,7 @@ services:
     networks:
       - app-network
   worker:
-    build: ./worker
+    build: ./fast_api/worker
     container_name: worker
     env_file:
       - .env
@@ -186,7 +187,7 @@ services:
     command: python main.py
     working_dir: /app
     volumes:
-      - ./worker:/app
+      - ./fast_api/worker:/app
 
 volumes:
   postgres_fastapi_data:

@@ -19,18 +19,18 @@ class PatientLoginSerializer(TokenObtainPairSerializer):
         password = attrs.get('password')
 
         if not cpf or not password:
-            raise AuthenticationFailed('CPF e senha são obrigatórios.')
+            raise AuthenticationFailed('CPF and password are obligatory.')
 
         try:
             user = Patient.objects.get(cpf=cpf)
         except Patient.DoesNotExist:
-            raise AuthenticationFailed('CPF ou senha incorretos.')
+            raise AuthenticationFailed('CPF or password incorrect.')
 
         if not user.check_password(password):
-            raise AuthenticationFailed('CPF ou senha incorretos.')
+            raise AuthenticationFailed('CPF or password incorrect.')
 
         if not user.is_active:
-            raise AuthenticationFailed('Conta desativada, entre em contato com o suporte.')
+            raise AuthenticationFailed('Deactivated account, enter in contact with support.')
 
         self.user = user
         data = super().validate(attrs)
@@ -69,7 +69,7 @@ class ScientistLoginSerializer(TokenObtainPairSerializer):
         user = authenticate(email=email, password=password)
 
         if not user or not hasattr(user, "scientist_id"):
-            raise AuthenticationFailed("Usuário e/ou senha incorreto(s) ou não é um cientista")
+            raise AuthenticationFailed("User and/or password are incorrect or user is not a scientist.")
 
         refresh = self.get_token(user)
 
@@ -109,12 +109,12 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         user = self.context["request"].user
         if User.objects.exclude(id=user.id).filter(email=value).exists():
-            raise serializers.ValidationError("Este email já está em uso.")
+            raise serializers.ValidationError("This email is already in use")
         return value
 
     def validate_password(self, value):
         if value and len(value) < 8:
-            raise serializers.ValidationError("A senha deve ter pelo menos 8 caracteres.")
+            raise serializers.ValidationError("The password must have 8 digits")
         return value
 
     def update(self, instance, validated_data):

@@ -21,7 +21,7 @@ async def get_rabbitmq_channel():
         _connection = await aio_pika.connect_robust(RABBIT_URL)
         _channel = await _connection.channel()
         await _channel.declare_queue(QUEUE_NAME, durable=True)
-        print(f"[Publisher] Conexão com RabbitMQ estabelecida")
+        print(f"[Publisher] Connection established with RabbitMQ")
     
     return _channel
 
@@ -30,14 +30,14 @@ async def publish_patient(patient_data: dict):
     Publica uma mensagem JSON no RabbitMQ.
     """
     if not patient_data:
-        print("[Publisher] Dados vazios, mensagem não será enviada.")
+        print("[Publisher] Empty data, message will not be sent.")
         return
 
     try:
         # Converte para JSON
         message_body = json.dumps(patient_data).encode()
     except (TypeError, ValueError) as e:
-        print(f"[Publisher] Erro ao converter dados para JSON: {e}")
+        print(f"[Publisher] Error converting data to JSON: {e}")
         return
 
     try:
@@ -50,10 +50,10 @@ async def publish_patient(patient_data: dict):
             ),
             routing_key=QUEUE_NAME
         )
-        print(f"[Publisher] Mensagem enviada para a fila '{QUEUE_NAME}': {patient_data}")
+        print(f"[Publisher] Message sent to queue '{QUEUE_NAME}': {patient_data}")
         
     except Exception as e:
-        print(f"[Publisher] Erro ao enviar para RabbitMQ: {e}")
+        print(f"[Publisher] Error sending to RabbitMQ: {e}")
         # Reseta a conexão em caso de erro
         global _connection, _channel
         _connection = None

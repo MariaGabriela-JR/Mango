@@ -42,7 +42,7 @@ class MeView(APIView):
                 "data": serializer.data
             })
 
-        return Response({"detail": "Tipo de usuário invalido"}, status=400)
+        return Response({"detail": "User type invalid"}, status=400)
     
 class LogoutView(APIView):
     permission_classes = [AllowAny]
@@ -52,7 +52,7 @@ class LogoutView(APIView):
 
         if not refresh_token:
             return Response(
-                {"detail": "Refresh token não fornecido"},
+                {"detail": "Refresh token was not given"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -60,14 +60,14 @@ class LogoutView(APIView):
             token = RefreshToken(refresh_token)
         except TokenError:
             return Response(
-                {"detail": "Token inválido ou já expirado"},
+                {"detail": "Invalid token or already expired"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # Salva o token na blacklist
         BlacklistedToken.objects.get_or_create(token=str(token))
 
-        return Response({"detail": "Logout realizado com sucesso"}, status=status.HTTP_200_OK)
+        return Response({"detail": "Logout made with success"}, status=status.HTTP_200_OK)
     
 class UserUpdateView(generics.UpdateAPIView):
     serializer_class = UserUpdateSerializer
