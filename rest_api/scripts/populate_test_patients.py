@@ -7,9 +7,9 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
 
 try:
     django.setup()
-    print("Django configurado com sucesso")
+    print("Django configurated with success")
 except Exception as e:
-    print(f"Erro ao configurar Django: {e}")
+    print(f"Error on configurating Django: {e}")
     sys.exit(1)
 
 from patients.models import Patient
@@ -38,14 +38,14 @@ test_patients = [
     },
 ]
 
-print("🎯 Iniciando população de pacientes de teste...")
+print("Starting the script of populating test patients...")
 
 for i, data in enumerate(test_patients, 1):
     try:
-        print(f"📝 Processando paciente {i}/{[len(test_patients)]}: {data['first_name']} {data['last_name']}")
+        print(f"Processing patient... {i}/{[len(test_patients)]}: {data['first_name']} {data['last_name']}")
         
         if Patient.objects.filter(cpf=data["cpf"]).exists():
-            print(f"Paciente {data['cpf']} já existe, pulando...")
+            print(f"Patient {data['cpf']} already exists, skipping...")
             continue
         
         # Converte string para date
@@ -63,10 +63,10 @@ for i, data in enumerate(test_patients, 1):
             is_test=True
         )
         
-        print(f"✅ Paciente criado: {patient.patient_iid} (CPF: {patient.cpf}, Idade: {patient.age})")
+        print(f"Patient created: {patient.patient_iid} (CPF: {patient.cpf}, Idade: {patient.age})")
         
     except Exception as e:
-        print(f"❌ Erro ao criar paciente {data['cpf']}: {e}")
+        print(f"Error on creating patient: {data['cpf']}: {e}")
 
-print("População de pacientes concluída!")
-print(f"Total de pacientes no banco: {Patient.objects.count()}")
+print("Populating patients done!")
+print(f"Total of patients on database: {Patient.objects.count()}")
