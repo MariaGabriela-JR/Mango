@@ -1,21 +1,20 @@
-import axios from 'axios'
-import { getApiUrl } from '@/lib/getApiUrl'
-
-export const listPatients = async (id) => {
+// lib/listPatients.js
+export const listPatients = async () => {
   try {
-    const token = localStorage.getItem('accessToken')
-    if (!token) throw new Error('Token de autenticação não encontrado')
-
-    const response = await axios.get(`${getApiUrl()}/patients/list/`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'X-Scientist-ID': id,
-      },
+    const response = await fetch('/bff/patients/list', {
+      method: 'GET',
+      credentials: 'include',
     })
 
-    return response.data
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || error.detail || 'Erro ao buscar pacientes')
+    }
+
+    const data = await response.json()
+    return data.patients || []
   } catch (err) {
-    console.error('Erro ao buscar pacientes:', err.response?.data || err.message)
+    console.error('Erro ao buscar pacientes:', err)
     throw err
   }
 }

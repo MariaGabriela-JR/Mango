@@ -1,61 +1,57 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { authLogin, authLogout } from '@/lib/authLogin'
 
 export const useAuth = () => {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // validação simples do JWT
-  const checkToken = useCallback(() => {
-    if (typeof window === 'undefined') return false
-    const token = localStorage.getItem('accessToken')
-    if (!token) return false
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      return payload.exp * 1000 > Date.now()
-    } catch {
-      return false
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/bff/scientist/auth')
+        const data = await res.json()
+        if (data.isLoggedIn) {
+          setUser(data.user)
+        } else {
+          setUser(null)
+        }
+      } catch {
+        setUser(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
+    checkSession()
   }, [])
 
-  useEffect(() => {
-    const valid = checkToken()
-    if (valid) {
-      const token = localStorage.getItem('accessToken')
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      setUser(payload)
-    } else {
-      setUser(null)
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-    }
-    setIsLoading(false)
-  }, [checkToken])
-
   const login = async (email, password) => {
-    const { access } = await authLogin(email, password)
-    const payload = JSON.parse(atob(access.split('.')[1]))
-    setUser(payload)
-    return payload
+    const res = await fetch('/bff/scientist/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    if (!res.ok) throw new Error('Falha no login')
+
+    const data = await res.json()
+    setUser({ id: data.id }) // payload simplificado
+    return data
   }
 
   const logout = async () => {
-    await authLogout()
+    await fetch('/bff/scientist/logout', { method: 'POST' })
     setUser(null)
     router.replace('/scientist/login')
   }
 
   const requireAuth = (redirectTo = '/scientist/login') => {
-    if (!checkToken()) {
+    if (!user && !isLoading) {
       router.replace(redirectTo)
     }
   }
 
   const redirectIfLogged = (redirectTo = '/dashboard') => {
-    if (checkToken()) {
+    if (user && !isLoading) {
       router.replace(redirectTo)
     }
   }
