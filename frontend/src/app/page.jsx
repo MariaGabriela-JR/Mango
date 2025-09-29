@@ -5,7 +5,6 @@ import Link from 'next/link'
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-white dark:bg-[#1a1b1c] text-black dark:text-white px-4">
-      {/* Container do texto */}
       <div className="flex flex-col items-center mb-8">
         <p className="text-lg font-light text-center font-sans mb-2 animate-fadeIn delay-200 opacity-0">
           Powered by UTFPR
@@ -19,8 +18,6 @@ export default function Home() {
           Mindwave Analysis for Neurofeedback & Graphical Observation
         </p>
       </div>
-
-      {/* Botões */}
       <div className="flex items-center justify-center gap-4 mt-2 animate-fadeIn delay-1000 opacity-0">
         <Link href="/scientist/login">
           <button className="md:w-32 md:h-12 w-28 bg-[#1a1b1c] dark:bg-white font-sans font-bold rounded-lg text-white dark:text-black hover:bg-black dark:hover:bg-gray-300 transition-colors duration-300">
@@ -33,8 +30,6 @@ export default function Home() {
           </button>
         </Link>
       </div>
-
-      {/* CSS para animação */}
       <style jsx>{`
         @keyframes fadeIn {
           0% {
