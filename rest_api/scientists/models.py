@@ -30,7 +30,7 @@ class ScientistManager(BaseUserManager):
 class Scientist(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     scientist_id = models.CharField(max_length=100, unique=True, db_index=True)
-    gender = models.CharField(max_length=20, choices=[("Male", "male"), ("Female", "female"), ("Other", "other")], null=True, blank=True)
+    gender = models.CharField(max_length=20, choices=[("male", "male"), ("female", "female"), ("other", "other")], null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     profile_picture = models.ImageField( upload_to="scientists/profile_pictures/", null=True, blank=True)
     email = models.EmailField(unique=True)

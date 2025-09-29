@@ -218,7 +218,9 @@ async def list_patients(
                 "first_name": p["first_name"],
                 "last_name": p["last_name"],
                 "patient_iid": p["patient_iid"],
-                "processing_status": "active" if p["is_active"] else "inactive"
+                "birth_date": p.get("birth_date"),
+                "gender": p.get("gender"),
+                "processing_status": "active" if p["is_active"] else "inactive",
             }
             for p in patients_rest
         ]

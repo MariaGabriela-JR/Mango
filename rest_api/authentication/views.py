@@ -10,7 +10,7 @@ from patients.serializers import PatientSerializer
 from scientists.serializers import ScientistSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
-from .serializers import PatientLoginSerializer, ScientistLoginSerializer, UserUpdateSerializer
+from .serializers import PatientLoginSerializer, ScientistLoginSerializer, ScientistUpdateSerializer
 from django.contrib.auth import get_user_model
 
 class PatientLoginViewJWT(TokenObtainPairView):
@@ -70,8 +70,9 @@ class LogoutView(APIView):
         return Response({"detail": "Logout made with success"}, status=status.HTTP_200_OK)
     
 class UserUpdateView(generics.UpdateAPIView):
-    serializer_class = UserUpdateSerializer
+    serializer_class = ScientistUpdateSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def get_object(self):
         return self.request.user

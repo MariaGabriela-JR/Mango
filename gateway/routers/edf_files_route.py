@@ -14,6 +14,7 @@ from pydantic import BaseModel
 RESTAPI_URL = os.getenv("RESTAPI_URL", "http://restapi:8000")
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq/")
 QUEUE_NAME = os.getenv("QUEUE_NAME", "patients")
+FAST_URL = os.getenv("FAST_URL", "http://fastapi:8001")
 
 router = APIRouter()
 
@@ -39,7 +40,7 @@ class EDFFileRequest(BaseModel):
     patient_iid: str
     session_name: str
     file_path: str
-    patient_metadata: PatientMetadata
+    patient_metadata: Optional[PatientMetadata] = None
     additional_metadata: Optional[dict] = None
 
 # =============================================================================
@@ -101,6 +102,13 @@ async def process_edf_file(
     token = authorization.replace("Bearer ", "")
     scientist = await authenticate_token(token)
 
+    # Monta apenas os campos que o FastAPI espera
+    edf_payload = {
+        "patient_iid": request.patient_iid,
+        "session_name": request.session_name,
+        "file_path": request.file_path
+    }
+
     enriched_data = {
         "action": "process_patient_data",
         "scientist_metadata": {
@@ -108,15 +116,7 @@ async def process_edf_file(
             "email": scientist.get("email"),
             "is_verified": scientist.get("is_verified", False),
         },
-        "patient_data": {
-            "patient_iid": request.patient_iid,
-            "session_name": request.session_name,
-            "file_path": request.file_path,
-            "age": request.patient_metadata.age,
-            "gender": request.patient_metadata.gender,
-            "clinical_notes": request.patient_metadata.clinical_notes or "",
-            "additional_metadata": request.additional_metadata or {}
-        },
+        "edf_payload": edf_payload,
         "processing_context": {
             "received_at": datetime.utcnow().isoformat()
         }
@@ -124,10 +124,10 @@ async def process_edf_file(
 
     background_tasks.add_task(publish_to_rabbitmq, enriched_data)
 
-    return {
-        "status": "queued",
-        "patient_iid": request.patient_iid,
-        "session_name": request.session_name,
-        "file_path": request.file_path,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    timeout = httpx.Timeout(600.0, read=600.0)
+    async with httpx.AsyncClient() as client:
+        fast_resp = await client.post(f"{FAST_URL}/api/edf-files/", json=edf_payload)
+        if fast_resp.status_code not in [200, 201]:
+            raise HTTPException(status_code=fast_resp.status_code, detail=fast_resp.text)
+
+        return fast_resp.json()

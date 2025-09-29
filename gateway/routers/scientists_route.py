@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Optional
 import httpx
@@ -24,6 +24,14 @@ class ScientistRegisterRequest(BaseModel):
 class ScientistLoginRequest(BaseModel):
     email: str
     password: str
+
+class ScientistUpdateRequest(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    institution: Optional[str] = None
+    specialization: Optional[str] = None
+    gender: Optional[str] = None
+    profile_picture: Optional[UploadFile] = File(None)    
 
 # =============================================================================
 # ENDPOINTS
@@ -160,7 +168,7 @@ async def logout_scientist(
         raise HTTPException(status_code=401, detail="Authentication token is necessary")
     
     token = authorization.replace("Bearer ", "")
-    refresh_token = logout_request.get("refresh_token")
+    refresh_token = logout_request.get("refresh")
     
     if not refresh_token:
         raise HTTPException(status_code=400, detail="Refresh token is necessary")
@@ -186,6 +194,75 @@ async def logout_scientist(
                     detail=response.json().get('detail', 'Error on logout')
                 )
                 
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Unavailable service: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+@router.patch("/update")
+async def update_scientist(
+    first_name: Optional[str] = Form(None),
+    last_name: Optional[str] = Form(None),
+    institution: Optional[str] = Form(None),
+    specialization: Optional[str] = Form(None),
+    gender: Optional[str] = Form(None),
+    profile_picture: Optional[UploadFile] = File(None),
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Atualiza dados do cientista autenticado usando PATCH (apenas campos enviados)
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication token is necessary")
+
+    token = authorization.replace("Bearer ", "")
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            headers = {"Authorization": f"Bearer {token}"}
+
+            # Monta apenas os campos que não são None
+            data = {}
+            if first_name is not None:
+                data["first_name"] = first_name
+            if last_name is not None:
+                data["last_name"] = last_name
+            if institution is not None:
+                data["institution"] = institution
+            if specialization is not None:
+                data["specialization"] = specialization
+            if gender is not None:
+                data["gender"] = gender
+
+            files = None
+            if profile_picture:
+                files = {
+                    "profile_picture": (
+                        profile_picture.filename,
+                        await profile_picture.read(),
+                        profile_picture.content_type
+                    )
+                }
+
+            response = await client.patch(
+                f"{RESTAPI_URL}/restapi/auth/users/update/",
+                data=data or None,
+                files=files,
+                headers=headers
+            )
+
+            if response.status_code == 200:
+                return {
+                    "status": "success",
+                    "message": "Scientist updated successfully",
+                    "scientist": response.json()
+                }
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=response.json()
+                )
+
     except httpx.RequestError as e:
         raise HTTPException(status_code=503, detail=f"Unavailable service: {str(e)}")
     except Exception as e:

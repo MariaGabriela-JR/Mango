@@ -101,27 +101,28 @@ class ScientistLoginSerializer(TokenObtainPairSerializer):
         token['user_id'] = str(user.id)
         return token
 
-class UserUpdateSerializer(serializers.ModelSerializer):
+class ScientistUpdateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = get_user_model()
-        fields = ['first_name', 'last_name', 'email', 'password']
-
-    def validate_email(self, value):
-        user = self.context["request"].user
-        if User.objects.exclude(id=user.id).filter(email=value).exists():
-            raise serializers.ValidationError("This email is already in use")
-        return value
-
-    def validate_password(self, value):
-        if value and len(value) < 8:
-            raise serializers.ValidationError("The password must have 8 digits")
-        return value
+        model = Scientist
+        fields = [
+            "first_name",
+            "last_name",
+            "gender",
+            "institution",
+            "specialization",
+            "profile_picture",
+        ]
+        extra_kwargs = {
+            "first_name": {"required": False},
+            "last_name": {"required": False},
+            "gender": {"required": False},
+            "institution": {"required": False},
+            "specialization": {"required": False},
+            "profile_picture": {"required": False},
+        }
 
     def update(self, instance, validated_data):
-        password = validated_data.pop('password', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        if password:
-            instance.set_password(password)
         instance.save()
         return instance
