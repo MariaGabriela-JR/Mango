@@ -8,7 +8,11 @@ export const updateScientist = async (formDataObj) => {
     const formData = new FormData()
     Object.entries(formDataObj).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        formData.append(key, value)
+        if (key === 'profilePicture') {
+          formData.append('profile_picture', value)
+        } else {
+          formData.append(key, value)
+        }
       }
     })
 

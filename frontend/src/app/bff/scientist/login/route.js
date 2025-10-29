@@ -25,7 +25,7 @@ export async function POST(req) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 2, // 15 (2 para testes) min
+      maxAge: 60 * 10, // 15 (2 para testes) min
     })
 
     res.cookies.set('refreshToken', refresh_token, {

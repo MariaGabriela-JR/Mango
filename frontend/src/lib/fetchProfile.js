@@ -9,12 +9,17 @@ export const fetchProfile = async () => {
     const result = await response.json()
 
     if (!response.ok || !result.success) {
-      throw new Error(result.detail || 'Erro ao buscar perfil')
+      throw new Error(result.message || 'Erro ao buscar perfil')
     }
 
-    return result.data
+    const data = result.data
+
+    return {
+      ...data,
+      profilePicture: data.profilePicture || data.profile_picture || null,
+    }
   } catch (err) {
-    console.error('Erro fetchProfile:', err.detail)
+    console.error('Erro fetchProfile:', err)
     throw err
   }
 }

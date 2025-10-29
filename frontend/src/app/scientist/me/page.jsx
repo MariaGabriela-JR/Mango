@@ -1,4 +1,4 @@
-// app/scientist/profile/page.jsx
+// app/scientist/me/page.jsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -66,7 +66,11 @@ export default function ScientistProfile() {
         })
         // Set image preview if profile picture exists
         if (profileData.profilePicture) {
-          setImagePreview(profileData.profilePicture)
+          const url = profileData.profilePicture.replace(
+            'http://restapi:8000',
+            'https://localhost/',
+          )
+          setImagePreview(url)
         }
       } catch (err) {
         setError(err.message)
