@@ -1,4 +1,3 @@
-# trials_route.py
 from fastapi import APIRouter, Header, HTTPException, BackgroundTasks
 from typing import Optional
 from datetime import datetime
@@ -11,10 +10,9 @@ import uuid
 
 from app.core.schemas import TrialCreate
 
-# CONFIGURAÇÕES
 RESTAPI_URL = os.getenv("RESTAPI_URL", "http://restapi:8000")
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq/")
-QUEUE_NAME = os.getenv("QUEUE_NAME", "patients")  # mesma fila que EDF?
+QUEUE_NAME = os.getenv("QUEUE_NAME", "patients")
 
 router = APIRouter()
 _rabbit_connection = None
@@ -27,7 +25,6 @@ async def get_rabbitmq_channel():
     await channel.declare_queue(QUEUE_NAME, durable=True)
     return channel
 
-# AUTENTICAÇÃO
 async def authenticate_token(token: str) -> dict:
     try:
         async with httpx.AsyncClient() as client:
@@ -43,7 +40,6 @@ async def authenticate_token(token: str) -> dict:
     except httpx.RequestError as e:
         raise HTTPException(status_code=503, detail=f"Authentication service is unavailable: {str(e)}")
 
-# PUBLICAR NO RABBITMQ
 async def publish_trial_to_rabbitmq(enriched_data: dict):
     try:
         channel = await get_rabbitmq_channel()
@@ -64,7 +60,6 @@ async def publish_trial_to_rabbitmq(enriched_data: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error on posting the message: {str(e)}")
 
-# ENDPOINT
 @router.post("/process-trial")
 async def process_trial(
     request: TrialCreate,

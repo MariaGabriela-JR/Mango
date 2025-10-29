@@ -1,4 +1,3 @@
-# plots_route.py (no Gateway)
 from fastapi import APIRouter, HTTPException, Depends, Header, Query
 from typing import Optional
 import httpx

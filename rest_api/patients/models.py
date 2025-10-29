@@ -11,10 +11,10 @@ from dateutil.relativedelta import relativedelta
 class PatientManager(BaseUserManager):
     def create_user(self, cpf, password=None, **extra_fields):
         if not cpf:
-            raise ValueError('O CPF é obrigatório')
+            raise ValueError('CPF is needed.')
         
         if not self.validate_cpf(cpf):
-            raise ValueError('CPF inválido')
+            raise ValueError('Invalid CPF.')
         
         cpf = self.normalize_cpf(cpf)
 
@@ -45,7 +45,7 @@ class Patient(AbstractBaseUser, PermissionsMixin):
     cpf = models.CharField(max_length=14, unique=True, db_index=True, null=True, blank=True)
     is_test = models.BooleanField(default=False)
     scientist = models.ForeignKey(Scientist, on_delete=models.CASCADE, related_name='patients', null=True, blank=True)
-    birth_date = models.DateField(null=True, blank=True)  # MUDOU: age → birth_date
+    birth_date = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=20, null=True, blank=True)
     clinical_notes = models.TextField(null=True, blank=True)
     additional_info = models.JSONField(default=dict)
@@ -61,7 +61,7 @@ class Patient(AbstractBaseUser, PermissionsMixin):
         'auth.Group',
         verbose_name='groups',
         blank=True,
-        help_text='Os grupos aos quais este usuário pertence. Um usuário receberá todas as permissões concedidas a cada um dos seus grupos.',
+        help_text='The groups this user belongs to. A user will receive all the permissions granted to each of their groups.',
         related_name="patient_groups",
         related_query_name="patient",
     )
@@ -69,14 +69,14 @@ class Patient(AbstractBaseUser, PermissionsMixin):
         'auth.Permission',
         verbose_name='user permissions',
         blank=True,
-        help_text='Permissões específicas à esse usuário',
+        help_text='Permissions specific to this user',
         related_name="patient_permissions",
         related_query_name="patient",
     )
 
     objects = PatientManager()
 
-    USERNAME_FIELD = 'cpf'  # MUDOU: email → cpf
+    USERNAME_FIELD = 'cpf'
     REQUIRED_FIELDS = ['first_name', 'last_name']
 
     class Meta:
@@ -90,7 +90,7 @@ class Patient(AbstractBaseUser, PermissionsMixin):
     
     @property
     def age(self):
-        """Calcula idade automaticamente baseado na data de nascimento"""
+        """Automatically calculates age based on date of birth"""
         if not self.birth_date:
             return None
         today = date.today()

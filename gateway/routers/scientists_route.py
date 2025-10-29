@@ -40,7 +40,7 @@ class ScientistUpdateRequest(BaseModel):
 @router.post("/register")
 async def register_scientist(request: ScientistRegisterRequest):
     """
-    Registra um novo cientista no sistema
+    Register a new scientist in the system
     """
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -84,7 +84,7 @@ async def register_scientist(request: ScientistRegisterRequest):
 @router.post("/login")
 async def login_scientist(request: ScientistLoginRequest):
     """
-    Login de cientista - retorna tokens JWT
+    Scientist Login - Returns JWT Tokens
     """
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -128,7 +128,7 @@ async def login_scientist(request: ScientistLoginRequest):
 @router.get("/profile")
 async def get_scientist_profile(authorization: Optional[str] = Header(None)):
     """
-    Obtém o perfil do cientista autenticado
+    Get the authenticated scientist profile
     """
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication token is necessary")
@@ -162,7 +162,7 @@ async def logout_scientist(
     authorization: Optional[str] = Header(None)
 ):
     """
-    Logout do cientista - invalida o refresh token
+    Scientist logout - invalidates refresh token
     """
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication token is necessary")
@@ -210,7 +210,7 @@ async def update_scientist(
     authorization: Optional[str] = Header(None)
 ):
     """
-    Atualiza dados do cientista autenticado usando PATCH (apenas campos enviados)
+    Updates authenticated scientist data using PATCH (submitted fields only)
     """
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication token is necessary")
@@ -221,7 +221,6 @@ async def update_scientist(
         async with httpx.AsyncClient(timeout=30.0) as client:
             headers = {"Authorization": f"Bearer {token}"}
 
-            # Monta apenas os campos que não são None
             data = {}
             if first_name is not None:
                 data["first_name"] = first_name

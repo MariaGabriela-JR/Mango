@@ -11,7 +11,7 @@ _connection = None
 _channel = None
 
 async def get_rabbitmq_channel():
-    """Obtém ou cria uma conexão e canal com RabbitMQ"""
+    """Gets or creates a connection and channel with RabbitMQ"""
     global _connection, _channel
     
     if _channel is None or _channel.is_closed:
@@ -27,14 +27,13 @@ async def get_rabbitmq_channel():
 
 async def publish_patient(patient_data: dict):
     """
-    Publica uma mensagem JSON no RabbitMQ.
+    Publishes a JSON message to RabbitMQ.
     """
     if not patient_data:
         print("[Publisher] Empty data, message will not be sent.")
         return
 
     try:
-        # Converte para JSON
         message_body = json.dumps(patient_data).encode()
     except (TypeError, ValueError) as e:
         print(f"[Publisher] Error converting data to JSON: {e}")
@@ -54,19 +53,18 @@ async def publish_patient(patient_data: dict):
         
     except Exception as e:
         print(f"[Publisher] Error sending to RabbitMQ: {e}")
-        # Reseta a conexão em caso de erro
         global _connection, _channel
         _connection = None
         _channel = None
 
 def send_to_worker(patient_data: dict):
     """
-    Função síncrona que pode ser chamada nas views.
+    Synchronous function that can be called in views.
     """
     asyncio.run(publish_patient(patient_data))
 
 async def close_connection():
-    """Fecha a conexão (útil para shutdown)"""
+    """Closes the connection (useful for shutdown)"""
     global _connection, _channel
     if _connection:
         await _connection.close()

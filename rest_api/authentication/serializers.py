@@ -6,6 +6,8 @@ from patients.models import Patient
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
+from urllib.parse import urljoin
+from django.conf import settings
 
 User = get_user_model()
 
@@ -102,6 +104,8 @@ class ScientistLoginSerializer(TokenObtainPairSerializer):
         return token
 
 class ScientistUpdateSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.SerializerMethodField()
+
     class Meta:
         model = Scientist
         fields = [
@@ -118,11 +122,21 @@ class ScientistUpdateSerializer(serializers.ModelSerializer):
             "gender": {"required": False},
             "institution": {"required": False},
             "specialization": {"required": False},
-            "profile_picture": {"required": False},
         }
 
+    def get_profile_picture(self, obj):
+        if obj.profile_picture:
+            return urljoin(settings.FRONTEND_URL, f"restapi/media/{obj.profile_picture}")
+        return None
+    
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+            if attr != "profile_picture":
+                setattr(instance, attr, value)
+
+        request = self.context.get("request")
+        if request and hasattr(request, "FILES") and "profile_picture" in request.FILES:
+            instance.profile_picture = request.FILES["profile_picture"]
+
         instance.save()
         return instance

@@ -35,11 +35,10 @@ class PatientSerializer(serializers.ModelSerializer):
         return value
 
     def validate_birth_date(self, value):
-        """Validação da data de nascimento"""
+        """Date of birth validation"""
         if value:
             if value > date.today():
                 raise serializers.ValidationError("Birth date can't be in the future.")
-            # Verifica se a pessoa tem pelo menos 1 ano
             age = relativedelta(date.today(), value).years
             if age < 1:
                 raise serializers.ValidationError("Patient must have at least 1 year old")
@@ -48,19 +47,16 @@ class PatientSerializer(serializers.ModelSerializer):
         return value
 
     def validate_cpf(self, value):
-        """Validação básica do CPF"""
+        """Basic CPF validation"""
         if value:
-            # Remove formatação
             cpf_clean = ''.join(filter(str.isdigit, value))
             if len(cpf_clean) != 11:
                 raise serializers.ValidationError("CPF must have 11 digits")
-            # Verifica se já existe
             if Patient.objects.filter(cpf=cpf_clean).exists():
                 raise serializers.ValidationError("CPF already registered")
         return value
 
     def create(self, validated_data):
-        # Formata CPF (remove caracteres especiais)
         if 'cpf' in validated_data:
             validated_data['cpf'] = ''.join(filter(str.isdigit, validated_data['cpf']))
         
@@ -89,7 +85,6 @@ class PatientSerializer(serializers.ModelSerializer):
         return instance
     
     def update(self, instance, validated_data):
-        # Formata CPF se estiver sendo atualizado
         if 'cpf' in validated_data:
             validated_data['cpf'] = ''.join(filter(str.isdigit, validated_data['cpf']))
         
@@ -112,14 +107,13 @@ class PatientSerializer(serializers.ModelSerializer):
         return instance
 
 class PatientCPFLoginSerializer(TokenObtainPairSerializer):
-    """Serializer para login com CPF"""
+    """Serializer for login with CPF"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields[self.username_field] = serializers.CharField(required=True)
         self.fields['password'] = serializers.CharField(required=True)
 
     def validate(self, attrs):
-        # Formata CPF
         cpf = ''.join(filter(str.isdigit, attrs.get('cpf', '')))
         attrs['cpf'] = cpf
         

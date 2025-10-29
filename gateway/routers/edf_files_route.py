@@ -1,4 +1,3 @@
-# edf_files_route.py (Gateway)
 from fastapi import APIRouter, HTTPException, Header, BackgroundTasks
 from typing import Optional
 from datetime import datetime
@@ -102,32 +101,22 @@ async def process_edf_file(
     token = authorization.replace("Bearer ", "")
     scientist = await authenticate_token(token)
 
-    # Monta apenas os campos que o FastAPI espera
-    edf_payload = {
-        "patient_iid": request.patient_iid,
-        "session_name": request.session_name,
-        "file_path": request.file_path
-    }
-
-    enriched_data = {
+    payload = {
         "action": "process_patient_data",
+        "patient_data": {
+            "patient_iid": request.patient_iid,
+            "session_name": request.session_name,
+            "file_path": request.file_path,
+            "additional_metadata": request.additional_metadata,
+        },
         "scientist_metadata": {
             "scientist_id": scientist.get("id"),
             "email": scientist.get("email"),
             "is_verified": scientist.get("is_verified", False),
         },
-        "edf_payload": edf_payload,
-        "processing_context": {
-            "received_at": datetime.utcnow().isoformat()
-        }
+        "received_at": datetime.utcnow().isoformat()
     }
 
-    background_tasks.add_task(publish_to_rabbitmq, enriched_data)
+    background_tasks.add_task(publish_to_rabbitmq, payload)
 
-    timeout = httpx.Timeout(600.0, read=600.0)
-    async with httpx.AsyncClient() as client:
-        fast_resp = await client.post(f"{FAST_URL}/api/edf-files/", json=edf_payload)
-        if fast_resp.status_code not in [200, 201]:
-            raise HTTPException(status_code=fast_resp.status_code, detail=fast_resp.text)
-
-        return fast_resp.json()
+    return {"status": "queued"}

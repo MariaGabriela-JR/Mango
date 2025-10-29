@@ -54,6 +54,7 @@ services:
         condition: service_healthy
     volumes:
       - ./rest_api:/code
+      - media_data:/code/media
     working_dir: /code
     command: sh -c "
         python manage.py makemigrations scientists patients eeg_sessions authentication --noinput && 
@@ -126,6 +127,7 @@ services:
       - ./nginx/stream.conf:/etc/nginx/stream.conf:ro
       - ./nginx/certs:/etc/nginx/certs
       - ./nginx/entrypoint.sh:/entrypoint.sh
+      - media_data:/code/media:ro
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     depends_on:
       - restapi
@@ -135,6 +137,7 @@ services:
       - db_restapi
     networks:
       - app-network
+
   gateway:
     build: ./gateway
     container_name: gateway_app
@@ -154,6 +157,7 @@ services:
       - app-network
     expose:
       - "8080"
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -170,6 +174,7 @@ services:
       retries: 5
     networks:
       - app-network
+
   worker:
     build: ./fast_api/worker
     container_name: worker
@@ -177,7 +182,7 @@ services:
       - .env
     environment:
       - QUEUE_NAME=patients
-      - FAST_URL=http://fastapi_app:8001/fastapi/api/patients/
+      - FAST_URL=http://fastapi_app:8001
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
     depends_on:
       - rabbitmq
@@ -188,10 +193,12 @@ services:
     working_dir: /app
     volumes:
       - ./fast_api/worker:/app
+      - ./data_mango:/data_mango:ro
 
 volumes:
   postgres_fastapi_data:
   postgres_restapi_data:
+  media_data:
 
 networks:
   app-network:

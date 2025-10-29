@@ -15,7 +15,6 @@ QUEUE_NAME = os.getenv("QUEUE_NAME", "patients")
 
 router = APIRouter()
 
-# Cache de conexão RabbitMQ
 _rabbit_connection = None
 
 async def get_rabbitmq_channel():
@@ -65,7 +64,7 @@ class EDFFileRequest(BaseModel):
 # =============================================================================
 
 async def authenticate_token(token: str) -> dict:
-    """Autentica cientista via REST API"""
+    """Authenticates scientist via REST API"""
     try:
         async with httpx.AsyncClient() as client:
             headers = {"Authorization": f"Bearer {token}"}
@@ -83,9 +82,23 @@ async def authenticate_token(token: str) -> dict:
         raise HTTPException(status_code=503, detail=f"Authentication service is unavailable: {e}")
 
 def prepare_fastapi_payload(enriched_data: dict) -> dict:
-    """Prepara dados para envio ao FastAPI via RabbitMQ"""
+    """Prepares data for sending to FastAPI via RabbitMQ"""
     if 'password' in enriched_data:
         del enriched_data['password']
+    
+    patient_data_payload = {
+        "patient_iid": enriched_data["patient_iid"],
+        "session_name": enriched_data["session_name"],
+        "age": enriched_data["patient_metadata"].get("age"),
+        "gender": enriched_data["patient_metadata"].get("gender"),
+        "clinical_notes": enriched_data["patient_metadata"].get("clinical_notes", ""),
+        "additional_metadata": enriched_data.get("additional_metadata", {})
+    }
+    
+    # Adiciona file_path apenas se não estiver vazio
+    file_path = enriched_data.get("file_path", "")
+    if file_path and file_path.strip():
+        patient_data_payload["file_path"] = file_path
     
     fastapi_payload = {
         "action": "process_patient_data",
@@ -94,15 +107,7 @@ def prepare_fastapi_payload(enriched_data: dict) -> dict:
             "email": enriched_data["scientist_metadata"]["email"],
             "is_verified": enriched_data["scientist_metadata"]["is_verified"]
         },
-        "patient_data": {
-            "patient_iid": enriched_data["patient_iid"],
-            "session_name": enriched_data["session_name"],
-            "file_path": enriched_data["file_path"],
-            "age": enriched_data["patient_metadata"].get("age"),
-            "gender": enriched_data["patient_metadata"].get("gender"),
-            "clinical_notes": enriched_data["patient_metadata"].get("clinical_notes", ""),
-            "additional_metadata": enriched_data.get("additional_metadata", {})
-        },
+        "patient_data": patient_data_payload,
         "processing_context": {
             "received_at": datetime.utcnow().isoformat(),
             "processing_timestamp": enriched_data["processing_timestamp"]
@@ -111,7 +116,7 @@ def prepare_fastapi_payload(enriched_data: dict) -> dict:
     return fastapi_payload
 
 async def publish_to_rabbitmq(enriched_data: dict):
-    """Publica dados no RabbitMQ"""
+    """Publish data to RabbitMQ"""
     try:
         channel = await get_rabbitmq_channel()
         fastapi_payload = prepare_fastapi_payload(enriched_data)

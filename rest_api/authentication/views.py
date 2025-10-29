@@ -64,7 +64,6 @@ class LogoutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Salva o token na blacklist
         BlacklistedToken.objects.get_or_create(token=str(token))
 
         return Response({"detail": "Logout made with success"}, status=status.HTTP_200_OK)
@@ -73,6 +72,11 @@ class UserUpdateView(generics.UpdateAPIView):
     serializer_class = ScientistUpdateSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
     def get_object(self):
         return self.request.user

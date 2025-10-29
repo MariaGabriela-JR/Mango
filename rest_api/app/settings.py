@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from decouple import config, Csv
 from datetime import timedelta
+from urllib.parse import urljoin
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -188,7 +189,6 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='')
 ADMIN_EMAIL = config('ADMIN_EMAIL', default='')
-FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
 FASTAPI_DB_CONFIG = {
     'HOST': os.getenv('FASTAPI_DB_USER', 'zeim'),
@@ -198,4 +198,12 @@ FASTAPI_DB_CONFIG = {
     'NAME': os.getenv('FASTAPI_DB_NAME', 'mango_edf_db'),
 }
 
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://localhost:3000/")
+def build_media_url(path):
+    return urljoin(FRONTEND_URL, f"restapi/media/{path}")
+
 FASTAPI_URL = "http://fastapi_app:8001/api/patients/"
+MEDIA_URL = '/restapi/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

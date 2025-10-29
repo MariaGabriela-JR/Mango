@@ -1,4 +1,3 @@
-# chunks_route.py (Gateway)
 from fastapi import APIRouter, HTTPException, Header
 from typing import Optional
 import httpx
