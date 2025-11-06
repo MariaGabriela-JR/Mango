@@ -68,3 +68,16 @@ class Trial(Base):
     def patient_iid(self):
         return self.edf_file.patient_iid if self.edf_file else None
 
+class ClassificationResult(Base):
+    __tablename__ = "classification_results"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
+    trial_id = Column(UUID(as_uuid=True), ForeignKey("trials.id"), nullable=False)
+    model_type = Column(String, default="SVM")
+    predicted_label = Column(String)
+    true_label = Column(String)
+    accuracy = Column(Float)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+
+    trial = relationship("Trial")
+

@@ -22,12 +22,10 @@ class TrialCreate(TrialBase):
 class TrialSimple(BaseModel):
     id: uuid.UUID
     edf_file_id: uuid.UUID
-    patient_iid: str
+    patient_iid: Optional[str]
     emotion_category: str
 
     model_config = {"from_attributes": True}
-  
-
 class TrialUpdate(BaseModel):
     trial_index: Optional[int] = None
     start_time: Optional[float] = None
@@ -46,9 +44,8 @@ class Trial(TrialBase):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
-
-
+    class Config:
+        orm_mode = True
 # -------------------- EDF FILE ----------------------------
 
 class EDFFileCreateBase(BaseModel):
@@ -64,9 +61,9 @@ class EDFFileSimple(BaseModel):
     session_name: str
     processing_status: ProcessingStatus
 
-    model_config = {"from_attributes": True}
 
-
+    class Config:
+         orm_mode = True
 class EDFFileBase(EDFFileCreateBase):
     file_name: str = Field(..., max_length=255)
     file_size: Optional[int] = None
@@ -95,10 +92,9 @@ class EDFFile(EDFFileBase):
     metadata_json: Dict[str, Any] = Field(default_factory=dict)
     trials: List[Trial] = []
 
-    model_config = {"from_attributes": True}
 
-
-
+    class Config:
+        orm_mode = True
 # -------------------- PATIENT METADATA --------------------
 
 # Schema simplificado para listagem
@@ -107,8 +103,8 @@ class PatientMetadataSimple(BaseModel):
     patient_iid: str
     processing_status: ProcessingStatus
 
-    model_config = {"from_attributes": True}
-
+    class Config:
+        orm_mode = True
 
 # Schema base completo
 class PatientMetadataBase(BaseModel):
@@ -138,9 +134,9 @@ class PatientMetadata(PatientMetadataBase):
     updated_at: datetime
     deleted_at: Optional[datetime] = None
 
-    model_config = {"from_attributes": True}
 
-
+    class Config:
+        orm_mode = True
 # -------------------- CHUNKS --------------------
 
 class EEGChunkInfo(BaseModel):
@@ -175,3 +171,22 @@ class EEGPlotResponse(BaseModel):
     png_data: str
     chunk_info: EEGChunkInfo
     generated_at: datetime
+
+#-----------------------------------
+
+class ClassificationResultBase(BaseModel):
+    trial_id: uuid.UUID
+    model_type: str = "SVM"
+    predicted_label: str
+    true_label: str
+    accuracy: Optional[float] = None
+
+class ClassificationResultCreate(ClassificationResultBase):
+    pass
+
+class ClassificationResult(ClassificationResultBase):
+    id: uuid.UUID
+    created_at: datetime
+
+    class Config:
+        orm_mode = True

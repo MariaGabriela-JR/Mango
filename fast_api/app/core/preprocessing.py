@@ -7,17 +7,14 @@ logger = logging.getLogger(__name__)
 
 
 class EDFValidationError(Exception):
-    """Erro customizado para arquivos EDF inválidos."""
-
+    pass
 
 def _check_channels(raw: mne.io.BaseRaw):
-    """Verifica se o arquivo possui canais válidos."""
     if raw.info["nchan"] == 0:
         raise EDFValidationError("Arquivo EDF sem canais detectados.")
 
 
 def _check_data(raw: mne.io.BaseRaw):
-    """Verifica se os dados não contêm NaN, Inf ou canais com variância zero."""
     data, _ = raw[:]
     if not np.isfinite(data).all():
         raise EDFValidationError("Arquivo EDF contém valores inválidos (NaN/inf).")
@@ -27,7 +24,6 @@ def _check_data(raw: mne.io.BaseRaw):
 
 
 def _normalize(raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
-    """Aplica normalização z-score por canal."""
     def zscore(channel_data):
         mean = channel_data.mean()
         std = channel_data.std()
@@ -38,7 +34,6 @@ def _normalize(raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
 
 
 def _set_standard_montage(raw: mne.io.BaseRaw):
-    """Tenta aplicar a montagem padrão 10-20."""
     try:
         raw.set_montage("standard_1020", on_missing="ignore")
     except Exception as e:
@@ -46,18 +41,6 @@ def _set_standard_montage(raw: mne.io.BaseRaw):
 
 
 def validate_and_preprocess(file_path: str) -> mne.io.BaseRaw:
-    """
-    Carrega, valida e normaliza um arquivo EDF usando MNE.
-    
-    Args:
-        file_path (str): Caminho para o arquivo EDF.
-
-    Returns:
-        mne.io.BaseRaw: Objeto Raw pronto para uso.
-
-    Raises:
-        EDFValidationError: Se o arquivo for inválido ou não puder ser processado.
-    """
     file = Path(file_path)
     if not file.exists():
         raise EDFValidationError(f"Arquivo EDF não encontrado: {file_path}")
@@ -81,6 +64,8 @@ def validate_and_preprocess(file_path: str) -> mne.io.BaseRaw:
         f"Arquivo EDF '{file.name}' validado: "
         f"{raw.info['nchan']} canais, {raw.info['sfreq']} Hz, duração {raw.times[-1]:.1f}s"
     )
+
+    logger.info(f"Pré-processamento concluído: {file.name}")
 
     return raw
 
