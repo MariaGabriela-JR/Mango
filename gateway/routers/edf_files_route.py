@@ -16,8 +16,8 @@ RESTAPI_URL = os.getenv("RESTAPI_URL", "http://restapi:8000")
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq/")
 QUEUE_NAME = os.getenv("QUEUE_NAME", "patients")
 FAST_URL = os.getenv("FAST_URL", "http://fastapi:8001")
-EDF_HOST_PATH = os.getenv("EDF_HOST_PATH", "/home/dalla/Documentos/personal/UTFPR/Data_Mango")
-EDF_CONTAINER_PATH = os.getenv("EDF_CONTAINER_PATH", "/data_mango")
+EDF_HOST_PATH = os.getenv("EDF_HOST_PATH")
+EDF_CONTAINER_PATH = os.getenv("EDF_CONTAINER_PATH")
 
 router = APIRouter()
 
