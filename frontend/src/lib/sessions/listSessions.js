@@ -1,7 +1,7 @@
 // lib/sessions/listSessions.js
 export const listSessions = async () => {
   try {
-    const response = await fetch('/bff/sessions/list', {
+    const response = await fetch('/bff/sessions', {
       method: 'GET',
       credentials: 'include',
     })
