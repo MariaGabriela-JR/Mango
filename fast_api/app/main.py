@@ -9,7 +9,8 @@ from app.api import (
         filters_api,
         chunks_api,
         plots_api,
-        classify_api
+        knn_api,
+        features_api
         )
 
 @asynccontextmanager
@@ -42,7 +43,8 @@ app.include_router(preprocessing_api.router, prefix="/api/preprocessing", tags=[
 app.include_router(filters_api.router, prefix="/api/filters", tags=["Filters"])
 app.include_router(chunks_api.router, prefix="/api/chuncks", tags=["chunks"])
 app.include_router(plots_api.router, prefix="/api/plots", tags=["plots"])
-app.include_router(classify_api.router, prefix="/api/classification", tags=["classification"])
+app.include_router(knn_api.router, prefix="/api/knn", tags=["knn"])
+app.include_router(features_api.router, prefix="/api/features", tags=["features"])
 
 @app.get("/")
 async def root():
