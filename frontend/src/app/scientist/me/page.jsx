@@ -66,8 +66,11 @@ export default function ScientistProfile() {
         })
         // Set image preview if profile picture exists
         if (profileData.profilePicture) {
-            const url = profileData.profilePicture.replace('http://restapi:8000', 'https://localhost/')
-            setImagePreview(url)
+          const url = profileData.profilePicture.replace(
+            'http://restapi:8000',
+            'https://localhost/',
+          )
+          setImagePreview(url)
         }
       } catch (err) {
         setError(err.message)

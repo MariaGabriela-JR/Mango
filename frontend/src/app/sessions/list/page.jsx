@@ -3,17 +3,19 @@
 
 import { useEffect, useState } from 'react'
 import { listSessions } from '@/lib/sessions/listSessions'
+import { showSession } from '@/lib/sessions/showSession'
 import Navbar from '@/components/ui/Navbar'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 // Função para formatar o status de processamento
 const formatStatus = (status) => {
   const statusMap = {
     new: 'Nova',
+    validated: 'validada',
     processing: 'Processando',
-    completed: 'Concluída',
     failed: 'Falhou',
-    queued: 'Na Fila'
+    queued: 'Na Fila',
   }
   return statusMap[status] || status
 }
@@ -23,9 +25,9 @@ const getStatusColor = (status) => {
   const colorMap = {
     new: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
     processing: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    validated: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
     failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    queued: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+    queued: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
   }
   return colorMap[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
 }
@@ -34,6 +36,8 @@ export default function SessionsList() {
   const [sessions, setSessions] = useState([])
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loadingDetails, setLoadingDetails] = useState(null)
+  const router = useRouter()
 
   useEffect(() => {
     listSessions()
@@ -41,6 +45,31 @@ export default function SessionsList() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
+
+  const handleViewDetails = async (sessionId, sessionName) => {
+    try {
+      setLoadingDetails(sessionId)
+
+      // Chama a função para mostrar os detalhes da sessão
+      const sessionData = await showSession(sessionId)
+
+      // Se for sucesso, redireciona para a página de detalhes
+      if (sessionData) {
+        // Formata o nome da sessão para URL
+        const formattedSessionName = sessionName
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '')
+
+        router.push(`/sessions/show/${formattedSessionName}?id=${sessionId}`)
+      }
+    } catch (err) {
+      console.error('Erro ao carregar detalhes da sessão:', err)
+      setError('Erro ao carregar detalhes da sessão')
+    } finally {
+      setLoadingDetails(null)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-[#0f0f0f] dark:via-[#1a1a1a] dark:to-[#0f0f0f]">
@@ -163,10 +192,10 @@ export default function SessionsList() {
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-full flex items-center justify-center border border-orange-200 dark:border-orange-800/30">
-                      <svg 
-                        className="w-6 h-6 text-orange-600 dark:text-orange-400" 
-                        fill="none" 
-                        stroke="currentColor" 
+                      <svg
+                        className="w-6 h-6 text-orange-600 dark:text-orange-400"
+                        fill="none"
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path
@@ -190,7 +219,9 @@ export default function SessionsList() {
 
                   {/* Status Badge */}
                   <div className="flex items-center justify-between mb-3">
-                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(session.processing_status)}`}>
+                    <span
+                      className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(session.processing_status)}`}
+                    >
                       {formatStatus(session.processing_status)}
                     </span>
                   </div>
@@ -200,26 +231,35 @@ export default function SessionsList() {
                       ID: {session.id.substring(0, 8)}...
                     </span>
                     <button
-                      className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 transition-colors duration-200 p-1 rounded flex items-center gap-1 text-sm"
-                      onClick={() => {
-                        // Aqui você pode implementar a lógica de edição
-                        console.log('Editar sessão:', session.id)
-                      }}
+                      className={`text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 transition-colors duration-200 p-1 rounded flex items-center gap-1 text-sm ${
+                        loadingDetails === session.id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      onClick={() => handleViewDetails(session.id, session.session_name)}
+                      disabled={loadingDetails === session.id}
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                      Detalhes
+                      {loadingDetails === session.id ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+                          Carregando...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                          Detalhes
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -242,7 +282,7 @@ export default function SessionsList() {
                 Voltar ao Dashboard
               </button>
             </Link>
-            
+
             <Link href="/sessions/new">
               <button className="py-2 px-6 bg-gradient-to-r from-orange-600 to-orange-700 text-white font-medium rounded-lg hover:from-orange-700 hover:to-orange-800 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

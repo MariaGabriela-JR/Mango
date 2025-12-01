@@ -53,17 +53,17 @@ class EDFFileRequest(BaseModel):
 class EDFFileSimple(BaseModel):
     id: UUID
     patient_iid: str
-    file_path: str
+    file_path: Optional[str] = None
     file_name: str
     session_name: str
     processing_status: str
-    channels: int
-    sample_frequency: float
-    duration: float
+    channels: Optional[str] = None
+    sample_frequency: Optional[float] = None
+    duration: Optional[float] = None
     recording_date: Optional[datetime] = None
-    file_size: int
-    created_at: datetime
-    updated_at: datetime
+    file_size: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 class EDFFileResponse(BaseModel):
     id: UUID

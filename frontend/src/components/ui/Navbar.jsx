@@ -98,13 +98,10 @@ export default function Navbar() {
 
   // Função para obter a foto de perfil
   const getProfilePicture = () => {
-  if (!scientistProfile?.profilePicture) return null
+    if (!scientistProfile?.profilePicture) return null
 
-  return scientistProfile.profilePicture.replace(
-    'http://restapi:8000',
-    'https://localhost/'
-  )
-}
+    return scientistProfile.profilePicture.replace('http://restapi:8000', 'https://localhost/')
+  }
 
   // Componente para renderizar o avatar
   const Avatar = ({ size = 8, className = '' }) => {
