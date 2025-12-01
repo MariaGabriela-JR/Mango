@@ -7,6 +7,7 @@ class ProcessingStatus(str, Enum):
     VALIDATED = "validated"
     FILTERED = "filtered"
     DELETED = "deleted"
+    trials_created = "TRIALS_CREATED"
 
 # ---------- EMOTION CATEGORY ----------
 class EmotionCategory(str, Enum):
