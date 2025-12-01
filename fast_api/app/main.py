@@ -10,7 +10,8 @@ from app.api import (
         chunks_api,
         plots_api,
         knn_api,
-        features_api
+        features_api,
+        metrics_api
         )
 
 @asynccontextmanager
@@ -45,6 +46,8 @@ app.include_router(chunks_api.router, prefix="/api/chuncks", tags=["chunks"])
 app.include_router(plots_api.router, prefix="/api/plots", tags=["plots"])
 app.include_router(knn_api.router, prefix="/api/knn", tags=["knn"])
 app.include_router(features_api.router, prefix="/api/features", tags=["features"])
+app.include_router(metrics_api.router, prefix="/api/metrics", tags=["metrics"])
+
 
 @app.get("/")
 async def root():
