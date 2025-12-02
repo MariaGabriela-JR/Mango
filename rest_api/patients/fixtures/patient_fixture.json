@@ -1,0 +1,102 @@
+[
+  {
+    "model": "patients.patient",
+    "pk": 1,
+    "fields": {
+      "patient_iid": "Fulano_ABC123",
+      "is_test": true,
+      "scientist": null,
+      "age": 30,
+      "gender": "male",
+      "clinical_notes": "Paciente de teste 1",
+      "additional_info": {},
+      "email": "fulano1@teste.com",
+      "first_name": "Fulano",
+      "last_name": "Silva",
+      "is_active": true,
+      "is_staff": false,
+      "created_at": "2025-09-15T00:00:00Z",
+      "updated_at": "2025-09-15T00:00:00Z"
+    }
+  },
+  {
+    "model": "patients.patient",
+    "pk": 2,
+    "fields": {
+      "patient_iid": "Ciclano_DEF456",
+      "is_test": true,
+      "scientist": null,
+      "age": 28,
+      "gender": "female",
+      "clinical_notes": "Paciente de teste 2",
+      "additional_info": {},
+      "email": "ciclano2@teste.com",
+      "first_name": "Ciclano",
+      "last_name": "Souza",
+      "is_active": true,
+      "is_staff": false,
+      "created_at": "2025-09-15T00:00:00Z",
+      "updated_at": "2025-09-15T00:00:00Z"
+    }
+  },
+  {
+    "model": "patients.patient",
+    "pk": 3,
+    "fields": {
+      "patient_iid": "Beltrano_GHI789",
+      "is_test": true,
+      "scientist": null,
+      "age": 35,
+      "gender": "male",
+      "clinical_notes": "Paciente de teste 3",
+      "additional_info": {},
+      "email": "beltrano3@teste.com",
+      "first_name": "Beltrano",
+      "last_name": "Pereira",
+      "is_active": true,
+      "is_staff": false,
+      "created_at": "2025-09-15T00:00:00Z",
+      "updated_at": "2025-09-15T00:00:00Z"
+    }
+  },
+  {
+    "model": "patients.patient",
+    "pk": 4,
+    "fields": {
+      "patient_iid": "Maria_JKL012",
+      "is_test": true,
+      "scientist": null,
+      "age": 40,
+      "gender": "female",
+      "clinical_notes": "Paciente de teste 4",
+      "additional_info": {},
+      "email": "maria4@teste.com",
+      "first_name": "Maria",
+      "last_name": "Oliveira",
+      "is_active": true,
+      "is_staff": false,
+      "created_at": "2025-09-15T00:00:00Z",
+      "updated_at": "2025-09-15T00:00:00Z"
+    }
+  },
+  {
+    "model": "patients.patient",
+    "pk": 5,
+    "fields": {
+      "patient_iid": "Joao_MNO345",
+      "is_test": true,
+      "scientist": null,
+      "age": 50,
+      "gender": "male",
+      "clinical_notes": "Paciente de teste 5",
+      "additional_info": {},
+      "email": "joao5@teste.com",
+      "first_name": "João",
+      "last_name": "Martins",
+      "is_active": true,
+      "is_staff": false,
+      "created_at": "2025-09-15T00:00:00Z",
+      "updated_at": "2025-09-15T00:00:00Z"
+    }
+  }
+]

@@ -1,0 +1,168 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+from app.core.models import EDFFile as EDFFileModel
+from app.core.schemas import EDFFileCreate, EDFFileUpdate, EDFFile as EDFFileSchema, EDFFileSimple
+from app.core.preprocessing import validate_and_preprocess, EDFValidationError
+from app.core.enums import ProcessingStatus
+from pathlib import Path
+import uuid
+import os
+
+router = APIRouter()
+
+
+# ---------- HELPERS ----------
+def extract_metadata(raw, file_path: str):
+    file_size = Path(file_path).stat().st_size
+
+    annotations = []
+    if len(raw.annotations) > 0:
+        df = raw.annotations.to_data_frame()
+        annotations = df.to_dict(orient="records")
+        for ann in annotations:
+            for k, v in ann.items():
+                if hasattr(v, "isoformat"):
+                    ann[k] = v.isoformat()
+                elif not isinstance(v, (str, int, float, type(None))):
+                    ann[k] = str(v)
+
+    return {
+        "channels": raw.info["nchan"],
+        "sample_frequency": float(raw.info["sfreq"]),
+        "duration": float(raw.times[-1]),
+        "recording_date": raw.info["meas_date"].isoformat() if raw.info["meas_date"] else None,
+        "file_size": file_size,
+        "metadata_json": {
+            "channel_names": list(raw.info["ch_names"]),
+            "bad_channels": list(raw.info.get("bads", [])),
+            "annotations": annotations,
+        },
+    }
+
+
+# ---------- ROUTES ----------
+
+# GET ALL ACTIVE FILES
+@router.get("/", response_model=list[EDFFileSimple])
+def get_edf_files(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return (
+        db.query(EDFFileModel)
+        .filter(EDFFileModel.processing_status != ProcessingStatus.DELETED.value)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+# GET ALL DELETED FILES (STATIC)
+@router.get("/deleted/all", response_model=list[EDFFileSchema])
+def get_deleted_edf_files(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return (
+        db.query(EDFFileModel)
+        .filter(EDFFileModel.processing_status == ProcessingStatus.DELETED.value)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+# RESTORE DELETED FILE
+@router.put("/deleted/{file_id}", response_model=EDFFileSchema)
+def restore_deleted_edf_file(file_id: uuid.UUID, db: Session = Depends(get_db)):
+    db_file = (
+        db.query(EDFFileModel)
+        .filter(
+            EDFFileModel.id == file_id,
+            EDFFileModel.processing_status == ProcessingStatus.DELETED.value,
+        )
+        .first()
+    )
+    if not db_file:
+        raise HTTPException(status_code=404, detail="Deleted EDF file not found")
+
+    db_file.processing_status = ProcessingStatus.ACTIVE.value
+    db.commit()
+    db.refresh(db_file)
+    return db_file
+
+
+# GET SINGLE FILE
+@router.get("/{file_id}", response_model=EDFFileSchema)
+def get_edf_file(file_id: uuid.UUID, db: Session = Depends(get_db)):
+    file = db.query(EDFFileModel).filter(EDFFileModel.id == file_id).first()
+    if not file or file.processing_status == ProcessingStatus.DELETED.value:
+        raise HTTPException(status_code=404, detail="EDF file not found")
+    return file
+
+
+# CREATE FILE
+@router.post("/", response_model=EDFFileSchema, status_code=status.HTTP_201_CREATED)
+def create_edf_file(file_data: EDFFileCreate, db: Session = Depends(get_db)):
+    existing_file = (
+        db.query(EDFFileModel).filter(EDFFileModel.file_path == file_data.file_path).first()
+    )
+    if existing_file:
+        raise HTTPException(status_code=400, detail="File with this path already exists")
+
+    try:
+        raw = validate_and_preprocess(file_data.file_path)
+    except EDFValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    meta = extract_metadata(raw, file_data.file_path)
+
+    db_file = EDFFileModel(
+        patient_iid=file_data.patient_iid,
+        file_path=file_data.file_path,
+        file_name=os.path.basename(file_data.file_path),
+        session_name=file_data.session_name
+        or os.path.basename(file_data.file_path),  # fallback automático
+        processing_status=ProcessingStatus.VALIDATED.value,
+        **meta,
+    )
+
+    db.add(db_file)
+    db.commit()
+    db.refresh(db_file)
+    return db_file
+
+
+# UPDATE FILE
+@router.put("/{file_id}", response_model=EDFFileSchema)
+def update_edf_file(file_id: uuid.UUID, file_data: EDFFileUpdate, db: Session = Depends(get_db)):
+    db_file = db.query(EDFFileModel).filter(EDFFileModel.id == file_id).first()
+    if not db_file or db_file.processing_status == ProcessingStatus.DELETED.value:
+        raise HTTPException(status_code=404, detail="EDF file not found")
+
+    if file_data.file_path:
+        try:
+            raw = validate_and_preprocess(file_data.file_path)
+            meta = extract_metadata(raw, file_data.file_path)
+            for k, v in meta.items():
+                setattr(db_file, k, v)
+            db_file.file_name = os.path.basename(file_data.file_path)
+            db_file.session_name = file_data.session_name or db_file.file_name
+            db_file.processing_status = ProcessingStatus.VALIDATED.value
+        except EDFValidationError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    for field, value in file_data.dict(exclude_unset=True, exclude={"file_path", "processing_staatus"}).items():
+        setattr(db_file, field, value)
+
+    db.commit()
+    db.refresh(db_file)
+    return db_file
+
+
+# SOFT DELETE FILE
+@router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_edf_file(file_id: uuid.UUID, db: Session = Depends(get_db)):
+    db_file = db.query(EDFFileModel).filter(EDFFileModel.id == file_id).first()
+    if not db_file or db_file.processing_status == ProcessingStatus.DELETED.value:
+        raise HTTPException(status_code=404, detail="EDF file not found")
+
+    db_file.processing_status = ProcessingStatus.DELETED.value
+    db.commit()
+    return
+

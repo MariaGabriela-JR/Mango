@@ -1,0 +1,205 @@
+services:
+  fastapi:
+    build: ./fast_api
+    container_name: fastapi_app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8001
+      - PYTHONPATH=/code
+      - EDF_HOST_PATH=${EDF_HOST_PATH}
+      - EDF_CONTAINER_PATH=${EDF_CONTAINER_PATH}
+      - OUTPUT_HOST_PATH=${OUTPUT_HOST_PATH}
+      - OUTPUT_CONTAINER_PATH=${OUTPUT_CONTAINER_PATH}
+    depends_on:
+      db_fastapi:
+        condition: service_healthy
+    volumes:
+      - ./fast_api:/code
+      - ${EDF_HOST_PATH}:${EDF_CONTAINER_PATH}:ro
+      - ${OUTPUT_HOST_PATH:-}:${OUTPUT_CONTAINER_PATH:-}
+    working_dir: /code
+    networks:
+      - app-network
+    expose:
+      - "8001"
+
+  restapi:
+    build: ./rest_api
+    container_name: rest_api_app
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=app.settings
+      - RESTAPI_POSTGRES_DB=${RESTAPI_POSTGRES_DB}
+      - RESTAPI_POSTGRES_USER=${RESTAPI_POSTGRES_USER}
+      - RESTAPI_POSTGRES_PASSWORD=${RESTAPI_POSTGRES_PASSWORD}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_DEBUG=${DJANGO_DEBUG}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DATABASE_HOST=db_restapi
+      - DATABASE_PORT=5432
+      - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS}
+      - PYTHONPATH=/code
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      db_restapi:
+        condition: service_healthy
+    volumes:
+      - ./rest_api:/code
+      - media_data:/code/media
+    working_dir: /code
+    command: sh -c "
+        python manage.py makemigrations scientists patients eeg_sessions authentication --noinput && 
+        python manage.py migrate --noinput && 
+        echo '=== EXECUTANDO POPULATE SCRIPT ===' && 
+        python3 scripts/populate_test_patients.py &&
+        python3 scripts/populate_scientists.py || echo '=== SCRIPT FALHOU ===' && 
+        python manage.py runserver 0.0.0.0:8000
+      "
+    networks:
+      - app-network
+    expose:
+      - "8000"
+
+  db_fastapi:
+    image: postgres:15
+    container_name: postgres_fastapi
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_fastapi_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  db_restapi:
+    image: postgres:15
+    container_name: postgres_restapi
+    environment:
+      POSTGRES_USER: ${RESTAPI_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${RESTAPI_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${RESTAPI_POSTGRES_DB}
+    volumes:
+      - postgres_restapi_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${RESTAPI_POSTGRES_USER} -d ${RESTAPI_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  frontend:
+    build: ./frontend
+    container_name: frontend_app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    networks:
+      - app-network
+    expose:
+      - "3000"
+
+  nginx:
+    build: ./nginx
+    container_name: nginx_proxy
+    ports:
+      - "443:443"
+      - "80:80"
+      - "5440:5440"
+      - "5441:5441"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/stream.conf:/etc/nginx/stream.conf:ro
+      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/entrypoint.sh:/entrypoint.sh
+      - media_data:/code/media:ro
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    depends_on:
+      - restapi
+      - fastapi
+      - frontend
+      - db_fastapi
+      - db_restapi
+    networks:
+      - app-network
+
+  gateway:
+    build: ./gateway
+    container_name: gateway_app
+    environment:
+      - RESTAPI_URL=http://restapi:8000
+      - FASTAPI_URL=http://fastapi:8001
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+      - QUEUE_NAME=patients
+    depends_on:
+      restapi:
+        condition: service_started
+      fastapi:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+    expose:
+      - "8080"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  worker:
+    build: ./fast_api/worker
+    container_name: worker
+    env_file:
+      - .env
+    environment:
+      - QUEUE_NAME=patients
+      - FAST_URL=http://fastapi_app:8001/api/patients/
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+    depends_on:
+      - rabbitmq
+      - fastapi
+    networks:
+      - app-network
+    command: python main.py
+    working_dir: /app
+    volumes:
+      - ./fast_api/worker:/app
+      - ./data_mango:/data_mango:ro
+
+volumes:
+  postgres_fastapi_data:
+  postgres_restapi_data:
+  media_data:
+
+networks:
+  app-network:
+    driver: bridge

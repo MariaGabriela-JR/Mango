@@ -1,0 +1,44 @@
+@import 'tailwindcss';
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --font-sans: var(--font-inter);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #101111;
+    --foreground: #ededed;
+  }
+}
+
+body,
+h1,
+h2,
+h3 {
+  background: var(--background);
+  background-color: transparent !important;
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+}
+
+button {
+  cursor: pointer;
+}
+
+.font-sans {
+  font-family: var(--font-sans), sans-serif;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
