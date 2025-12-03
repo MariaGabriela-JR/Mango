@@ -32,14 +32,10 @@ Mango é uma interface cérebro-computador que utiliza a base de dados EmoEEG-MC
 4. Visualização em 3D do Cérebro
 
     - Renderização de um modelo tridimensional do cérebro.
-    - Realce das áreas ativadas por estímulos.
-    - Feedback visual para melhor compreensão.
 
 5. Dashboard Interativo
 
-    - Gráficos e tabelas com indicadores derivados dos sinais.
     - Visualização de padrões emocionais em diferentes contextos.
-    - Comparação entre pacientes ou sessões.
 
 ---
 
@@ -47,16 +43,41 @@ Mango é uma interface cérebro-computador que utiliza a base de dados EmoEEG-MC
 ## Tecnologias utilizadas
 O projeto foi desenvolvido utilizando as seguintes tecnologias:
 
-- Backend: Python com o framework Django
-- Frontend: JavaScript
+- Backend: Python com o framework Django e FastAPI
+- Frontend: JavaScript com o framework React
 - Banco de Dados: PostgreSQL
-- Modelagem 3D: Unity
+- Modelagem 3D: Three.js
 
 ---
 
 ## Primeiros passos
-1. 
 
+### Pré-requisitos:
+
+- Git
+- Docker e Docker Compose
+- Navegador web ou CURL
+- Template .env
+- Dados EDF ou FIF e labels
+
+> Observação: o projeto usa HTTPS em localhost. Como o certificado será autoassinado, o navegador exibirá um aviso aceite o risco/avançar para continuar nos testes locais.
+
+### Passos rápidos
+
+- Clonar o repositório
+- git clone <url-do-repositorio>
+- cd mango
+- Construir as imagens e subir os serviços
+- Para build + subir (foreground, mostra logs):
+- docker-compose build
+- docker-compose up
+- Para rodar em background (detached):
+- docker-compose up -d --build
+- Acessar a aplicação
+- Frontend: https://localhost
+- Swagger (FastAPI): https://localhost/fastapi/docs
+
+> Observação: precisa ter um arquivo edf/fif no disco e colocar no caminho da .env
 ---
 
 ## Guia para contribuição
